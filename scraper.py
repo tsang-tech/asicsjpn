@@ -27,12 +27,22 @@ def get_data():
             # 獲取該區塊內所有的純文字
             all_text = item.get_text("|", strip=True).split("|")
             
-            # 尋找價格 (包含 HK$ 的數字)
+            # 尋找價格 (處理包含小數點的情況，例如 731.00)
             prices = []
             for t in all_text:
                 if 'HK$' in t:
-                    num = re.sub(r'[^\d]', '', t)
-                    if num: prices.append(int(num))
+                    # 使用正規表達式尋找數字，包含小數點 (例如 731.00)
+                    # 移除逗號 (千分位) 但保留小數點
+                    clean_t = t.replace('HK$', '').replace(',', '').strip()
+                    match = re.search(r'\d+\.\d+|\d+', clean_t)
+                    if match:
+                        try:
+                            # 先轉為浮點數處理小數，再轉為整數
+                            num = int(float(match.group()))
+                            if num > 0:
+                                prices.append(num)
+                        except ValueError:
+                            continue
             
             # 只有找到價格的才算有效商品
             if len(prices) >= 1:

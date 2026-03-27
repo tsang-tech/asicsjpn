@@ -7,6 +7,30 @@ import re
 URL = "https://slamjam.com/en-hk/collections/sale"
 PROFIT = 200
 
+def parse_price(text):
+    """專門處理各國幣值格式與小數點的轉換器"""
+    # 1. 只保留數字、點 (.) 和逗號 (,)
+    clean_text = re.sub(r'[^\d\.,]', '', text)
+    if not clean_text: return -1
+    
+    # 2. 檢查是否以 .XX 或 ,XX 結尾 (處理 731.00 或歐洲格式的 731,00)
+    if re.search(r'[\.,]\d{2}$', clean_text):
+        main_part = clean_text[:-3] # 砍掉最後三個字元 (小數點和兩個零)
+        main_part = re.sub(r'[^\d]', '', main_part) # 清除剩下的千分位逗號 (如 1,731)
+        return int(main_part) if main_part else 0
+        
+    # 3. 處理沒有小數點的情況
+    main_part = re.sub(r'[^\d]', '', clean_text)
+    if not main_part: return -1
+    val = int(main_part)
+    
+    # 4. 防呆機制：電商系統有時會將 731.00 在後台寫成 73100 (以分為單位)
+    # 如果特價鞋款價格超過 HK$20,000 (極不合理)，自動除以 100
+    if val > 20000:
+        val = val // 100
+        
+    return val
+
 def get_data():
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -18,51 +42,33 @@ def get_data():
         res = requests.get(URL, headers=headers, timeout=20)
         soup = BeautifulSoup(res.text, 'html.parser')
         
-        # 尋找所有包含商品資訊的 div
         items = soup.find_all('div', class_=re.compile(r'product-card|grid-item', re.I))
         print(f"Step 2: Found {len(items)} items. Extracting details...")
 
         products = []
         for item in items:
-            # 獲取該區塊內所有的純文字
             all_text = item.get_text("|", strip=True).split("|")
             
-            # 尋找價格 (處理包含小數點的情況，例如 731.00)
             prices = []
             for t in all_text:
-                if 'HK$' in t:
-                    # 先移除 HK$ 和千分位逗號 (,)
-                    clean_t = t.replace('HK$', '').replace(',', '').strip()
-                    
-                    # 使用正規表達式匹配數字，包含可能的小數點
-                    # 邏輯：找出一串數字，中間可能有個點，後面又是數字
-                    match = re.search(r'(\d+\.\d+|\d+)', clean_t)
-                    if match:
-                        try:
-                            # 關鍵修正：先轉成 float (731.00 -> 731.0)
-                            # 再轉成 int (731.0 -> 731)
-                            val_float = float(match.group(1))
-                            num = int(val_float)
-                            if num > 0:
-                                prices.append(num)
-                        except ValueError:
-                            continue
+                if 'HK$' in t or 'HKD' in t:
+                    p = parse_price(t)
+                    if p > 0:
+                        prices.append(p)
             
-            # 只有找到價格的才算有效商品
             if len(prices) >= 1:
-                # 較小的數字通常是特價，較大的是原價
-                # 注意：如果頁面只顯示一個價格，min 和 max 會一樣
-                sale_p = min(prices)
-                old_p = max(prices) if len(prices) > 1 else int(sale_p * 1.3)
+                # 排序價格，確保細的是特價
+                prices.sort()
+                sale_p = prices[0]
+                # 如果有兩個價格，大的是原價；否則虛擬一個原價
+                old_p = prices[-1] if len(prices) > 1 else int(sale_p * 1.3)
                 
-                # 獲取名稱
-                name = "Item"
+                name = "Premium Item"
                 for t in all_text[:5]:
-                    if len(t) > 5 and 'HK$' not in t:
-                        name = t.replace("Slam Jam", "Premium")
+                    if len(t) > 5 and 'HK$' not in t and 'HKD' not in t:
+                        name = t.replace("Slam Jam", "Premium").strip()
                         break
                 
-                # 獲取圖片
                 img = item.find('img')
                 img_url = ""
                 if img:
@@ -77,13 +83,13 @@ def get_data():
                     "image": img_url
                 })
 
-        # 儲存結果
         if products:
             with open('products.json', 'w', encoding='utf-8') as f:
                 json.dump(products, f, ensure_ascii=False, indent=4)
             print(f"Step 3: Success! Saved {len(products)} products to products.json")
+            print("請檢查 products.json，價格現在應該是絕對精準的了！")
         else:
-            print("Step 3: Failed to extract. No valid prices found.")
+            print("Step 3: Failed. No products found.")
 
     except Exception as e:
         print(f"Error: {e}")

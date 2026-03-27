@@ -31,13 +31,13 @@ def get_data():
             prices = []
             for t in all_text:
                 if 'HK$' in t:
-                    # 使用正規表達式尋找數字，包含小數點 (例如 731.00)
-                    # 移除逗號 (千分位) 但保留小數點
+                    # 移除 HK$ 和千分位逗號，保留小數點
                     clean_t = t.replace('HK$', '').replace(',', '').strip()
+                    # 正則表達式匹配數字與小數點
                     match = re.search(r'\d+\.\d+|\d+', clean_t)
                     if match:
                         try:
-                            # 先轉為浮點數處理小數，再轉為整數
+                            # 先轉 float 處理小數點，再轉 int 去掉 .0
                             num = int(float(match.group()))
                             if num > 0:
                                 prices.append(num)
@@ -46,11 +46,11 @@ def get_data():
             
             # 只有找到價格的才算有效商品
             if len(prices) >= 1:
-                # 通常較小的數字是特價，較大的是原價
+                # 較小的數字通常是特價，較大的是原價
                 sale_p = min(prices)
                 old_p = max(prices) if len(prices) > 1 else int(sale_p * 1.3)
                 
-                # 獲取名稱 (通常是前幾段文字中比較長的)
+                # 獲取名稱
                 name = "Item"
                 for t in all_text[:5]:
                     if len(t) > 5 and 'HK$' not in t:
@@ -62,7 +62,8 @@ def get_data():
                 img_url = ""
                 if img:
                     img_url = img.get('data-src') or img.get('src') or ""
-                    if img_url.startswith('//'): img_url = "https:" + img_url
+                    if img_url.startswith('//'):
+                        img_url = "https:" + img_url
 
                 products.append({
                     "name": name,
@@ -77,7 +78,7 @@ def get_data():
                 json.dump(products, f, ensure_ascii=False, indent=4)
             print(f"Step 3: Success! Saved {len(products)} products to products.json")
         else:
-            print("Step 3: Failed to extract. Please check if the website structure changed.")
+            print("Step 3: Failed to extract. No valid prices found.")
 
     except Exception as e:
         print(f"Error: {e}")

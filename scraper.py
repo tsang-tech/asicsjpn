@@ -31,14 +31,18 @@ def get_data():
             prices = []
             for t in all_text:
                 if 'HK$' in t:
-                    # 移除 HK$ 和千分位逗號，保留小數點
+                    # 先移除 HK$ 和千分位逗號 (,)
                     clean_t = t.replace('HK$', '').replace(',', '').strip()
-                    # 正則表達式匹配數字與小數點
-                    match = re.search(r'\d+\.\d+|\d+', clean_t)
+                    
+                    # 使用正規表達式匹配數字，包含可能的小數點
+                    # 邏輯：找出一串數字，中間可能有個點，後面又是數字
+                    match = re.search(r'(\d+\.\d+|\d+)', clean_t)
                     if match:
                         try:
-                            # 先轉 float 處理小數點，再轉 int 去掉 .0
-                            num = int(float(match.group()))
+                            # 關鍵修正：先轉成 float (731.00 -> 731.0)
+                            # 再轉成 int (731.0 -> 731)
+                            val_float = float(match.group(1))
+                            num = int(val_float)
                             if num > 0:
                                 prices.append(num)
                         except ValueError:
@@ -47,6 +51,7 @@ def get_data():
             # 只有找到價格的才算有效商品
             if len(prices) >= 1:
                 # 較小的數字通常是特價，較大的是原價
+                # 注意：如果頁面只顯示一個價格，min 和 max 會一樣
                 sale_p = min(prices)
                 old_p = max(prices) if len(prices) > 1 else int(sale_p * 1.3)
                 

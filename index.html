@@ -3,56 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exclusive Select - Premium Outlet</title>
+    <title>EXCLSV_SELECT - Premium Outlet</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
         .product-card:hover img { transform: scale(1.05); }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-900">
+<body class="bg-neutral-50 text-neutral-900">
+    <!-- 頂部公告 -->
+    <div class="bg-black text-white text-center py-2 text-[10px] font-bold tracking-[0.2em] uppercase">
+        Global Shipping • 100% Authentic • Daily Inventory Sync
+    </div>
+
+    <!-- 導覽列 -->
     <nav class="bg-white border-b sticky top-0 z-50 p-4 shadow-sm">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <h1 class="text-2xl font-black italic tracking-tighter">EXCLSV_SELECT</h1>
-            <div class="text-sm font-bold text-orange-600">EUROPE SALE DIRECT</div>
+            <h1 class="text-2xl font-black italic tracking-tighter cursor-pointer" onclick="filterBrand('All')">EXCLSV_SELECT</h1>
+            <div class="text-[10px] font-bold text-orange-600 border border-orange-600 px-2 py-1 italic">EUROPE OUTLET DIRECT</div>
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto py-10 px-4">
-        <div id="loading" class="text-center py-20 text-gray-500">載入最新特價商品中...</div>
-        <div id="product-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+    <main class="max-w-7xl mx-auto py-8 px-4">
+        <!-- 頁首摘要 -->
+        <div class="text-center mb-10">
+            <h2 class="text-3xl font-black uppercase tracking-tight italic">Sale Inventory</h2>
+            <p id="stats-info" class="text-neutral-500 text-xs mt-2">載入數據中...</p>
+        </div>
+
+        <!-- 品牌篩選器 -->
+        <div class="mb-8">
+            <div class="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-3 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="2" y1="14" x2="6" y2="14"></line><line x1="10" y1="8" x2="14" y2="8"></line><line x1="18" y1="16" x2="22" y2="16"></line></svg>
+                Filter By Brand
+            </div>
+            <div id="brand-filters" class="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
+                <!-- 品牌按鈕會由 JS 動態生成 -->
+            </div>
+        </div>
+
+        <!-- 商品網格 -->
+        <div id="loading" class="text-center py-20 text-neutral-400">
+            <div class="animate-spin inline-block w-8 h-8 border-4 border-current border-t-transparent text-black rounded-full mb-4"></div>
+            <p class="text-sm font-bold uppercase tracking-widest">Scanning European Stocks...</p>
+        </div>
+        
+        <div id="product-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-4 gap-y-10"></div>
+
+        <!-- 分頁按鈕 -->
+        <div id="pagination" class="mt-16 flex flex-col items-center gap-4 border-t border-neutral-200 pt-10 hidden">
+            <div id="page-info" class="text-[10px] font-bold text-neutral-400 uppercase tracking-widest"></div>
+            <div class="flex items-center gap-2">
+                <button id="prev-page" class="p-2 border border-neutral-200 rounded-sm hover:bg-white disabled:opacity-30">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <div id="page-numbers" class="flex gap-1"></div>
+                <button id="next-page" class="p-2 border border-neutral-200 rounded-sm hover:bg-white disabled:opacity-30">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+            </div>
+        </div>
     </main>
 
+    <footer class="bg-white border-t border-neutral-200 mt-20 py-12 text-center text-[9px] text-neutral-400 uppercase tracking-[0.3em] leading-loose">
+        © 2024 EXCLUSIVE SELECT HK<br/>
+        Directly Curated from European Retailers • Updated Every 24 Hours
+    </footer>
+
     <script>
+        let allProducts = [];
+        let filteredProducts = [];
+        let currentBrand = 'All';
+        let currentPage = 1;
+        const itemsPerPage = 50;
+
+        // 初始化
         fetch('./products.json')
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
-                const loading = document.getElementById('loading');
-                const grid = document.getElementById('product-grid');
-                loading.classList.add('hidden');
+                // 過濾掉 SOLD OUT 商品
+                allProducts = data.filter(p => p.status !== 'SOLD OUT');
+                filteredProducts = [...allProducts];
                 
-                grid.innerHTML = data.map(product => `
-                    <div class="product-card bg-white border border-gray-100 rounded-lg overflow-hidden transition-all shadow-sm hover:shadow-md">
-                        <div class="aspect-square bg-gray-100 overflow-hidden">
-                            <img src="${product.image || 'https://via.placeholder.com/400'}" 
-                                 class="w-full h-full object-cover transition-transform duration-500"
-                                 onerror="this.src='https://via.placeholder.com/400?text=No+Image'">
-                        </div>
-                        <div class="p-4">
-                            <h3 class="font-medium text-sm h-10 overflow-hidden line-clamp-2">${product.name}</h3>
-                            <div class="mt-4 flex flex-col">
-                                <span class="text-lg font-black text-black tracking-tight font-mono">HK$ ${product.my_price}</span>
-                                <span class="text-xs text-gray-400 line-through">HK$ ${product.original_price}</span>
-                            </div>
-                            <button class="w-full mt-4 bg-black text-white text-xs font-bold py-3 uppercase tracking-widest hover:bg-gray-800">
-                                立即購買
-                            </button>
-                        </div>
-                    </div>
-                `).join('');
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('pagination').classList.remove('hidden');
+                
+                renderBrands();
+                updateDisplay();
             })
             .catch(err => {
-                document.getElementById('loading').innerText = "暫時無法載入商品，請稍後再試。";
+                document.getElementById('loading').innerHTML = `<p class="text-red-500">無法載入商品資料，請確保已經執行爬蟲並生成 products.json</p>`;
             });
+
+        function renderBrands() {
+            const brands = ['All', ...new Set(allProducts.map(p => p.brand).filter(Boolean))];
+            const container = document.getElementById('brand-filters');
+            container.innerHTML = brands.map(brand => `
+                <button onclick="filterBrand('${brand}')" 
+                        class="brand-btn px-4 py-2 text-[10px] font-bold uppercase tracking-wider rounded-full border whitespace-nowrap transition-all
+                        ${currentBrand === brand ? 'bg-black text-white border-black' : 'bg-white text-neutral-500 border-neutral-200 hover:border-black'}">
+                    ${brand}
+                </button>
+            `).join('');
+        }
+
+        function filterBrand(brand) {
+            currentBrand = brand;
+            currentPage = 1;
+            filteredProducts = brand === 'All' ? allProducts : allProducts.filter(p => p.brand === brand);
+            renderBrands();
+            updateDisplay();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function updateDisplay() {
+            const grid = document.getElementById('product-grid');
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageItems = filteredProducts.slice(start, end);
+            const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+
+            document.getElementById('stats-info').innerText = `目前顯示 ${filteredProducts.length} 件符合條件的商品`;
+            document.getElementById('page-info').innerText = `PAGE ${currentPage} OF ${totalPages}`;
+
+            grid.innerHTML = pageItems.map(p => `
+                <div class="flex flex-col h-full group">
+                    <div class="aspect-[3/4] overflow-hidden bg-neutral-100 rounded-sm mb-3 relative">
+                        <img src="${p.image || 'https://via.placeholder.com/400x533'}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy">
+                        <div class="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-black px-2 py-1 italic uppercase shadow-lg">Sale</div>
+                    </div>
+                    <div class="flex-grow space-y-1">
+                        <div class="text-[9px] font-black text-orange-600 uppercase tracking-widest">${p.brand || 'Premium'}</div>
+                        <h3 class="font-bold text-[11px] leading-tight h-8 overflow-hidden line-clamp-2 uppercase tracking-tighter">${p.name}</h3>
+                        
+                        <div class="pt-2">
+                            <div class="text-[8px] font-bold text-neutral-400 uppercase mb-1">Available Sizes</div>
+                            <div class="flex flex-wrap gap-1">
+                                ${(p.sizes || []).slice(0, 5).map(s => `<span class="text-[9px] border border-neutral-200 px-1 py-0.5 font-mono">${s}</span>`).join('')}
+                                ${p.sizes && p.sizes.length > 5 ? `<span class="text-[8px] text-neutral-400 flex items-center">+${p.sizes.length-5}</span>` : ''}
+                            </div>
+                        </div>
+
+                        <div class="pt-3 flex flex-col">
+                            <span class="text-sm font-black italic">HK$ ${p.my_price}</span>
+                            <span class="text-[9px] text-neutral-400 line-through tracking-tighter">MKT: HK$ ${p.original_price}</span>
+                        </div>
+                    </div>
+                    <button class="w-full mt-4 py-3 bg-black text-white text-[9px] font-black uppercase tracking-[0.2em] hover:bg-orange-600 transition-colors flex items-center justify-center gap-2 shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                        Secure Order
+                    </button>
+                </div>
+            `).join('');
+
+            // 分頁邏輯
+            renderPagination(totalPages);
+        }
+
+        function renderPagination(total) {
+            const container = document.getElementById('page-numbers');
+            document.getElementById('prev-page').disabled = currentPage === 1;
+            document.getElementById('next-page').disabled = currentPage === total;
+
+            document.getElementById('prev-page').onclick = () => { currentPage--; updateDisplay(); window.scrollTo({top:0}); };
+            document.getElementById('next-page').onclick = () => { currentPage++; updateDisplay(); window.scrollTo({top:0}); };
+
+            // 簡易分頁按鈕 (顯示當前及前後)
+            let btns = "";
+            for (let i = 1; i <= total; i++) {
+                if (i === 1 || i === total || (i >= currentPage - 1 && i <= currentPage + 1)) {
+                    btns += `<button onclick="goToPage(${i})" class="w-8 h-8 text-[10px] font-bold border ${currentPage === i ? 'bg-black text-white border-black' : 'bg-white border-neutral-200 text-neutral-500'}">${i}</button>`;
+                } else if (i === currentPage - 2 || i === currentPage + 2) {
+                    btns += `<span class="text-neutral-300">...</span>`;
+                }
+            }
+            container.innerHTML = btns;
+        }
+
+        function goToPage(p) {
+            currentPage = p;
+            updateDisplay();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
     </script>
 </body>
 </html>

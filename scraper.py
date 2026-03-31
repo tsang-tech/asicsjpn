@@ -4,7 +4,8 @@ import json
 import time
 
 # 設定
-PROFIT = 200
+PROFIT = 200 # 你的利潤 (單位：港幣)
+EXCHANGE_RATE = 8.5 # 匯率轉換：SlamJam 預設回傳可能是歐元(EUR)。1 EUR ≒ 8.5 HKD。若確定 API 已回傳港幣，請改為 1.0
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
     "Accept": "application/json",
@@ -59,10 +60,11 @@ def get_data():
                 sale_p_raw = v.get('price')
                 if not sale_p_raw: continue
                 
-                sale_p = int(float(sale_p_raw))
+                # 乘上匯率轉換為港幣
+                sale_p = int(float(sale_p_raw) * EXCHANGE_RATE)
                 compare_p_raw = v.get('compare_at_price')
                 
-                old_p = int(float(compare_p_raw)) if compare_p_raw else int(sale_p * 1.5)
+                old_p = int(float(compare_p_raw) * EXCHANGE_RATE) if compare_p_raw else int(sale_p * 1.5)
 
                 sizes = []
                 for var in variants:
@@ -89,7 +91,8 @@ def get_data():
 
             print(f"✅ 第 {page} 頁處理完成，目前累計：{len(all_products)} 件")
             
-            if len(products) < 30: 
+            # 修正矛盾：limit 為 250，因此小於 250 才代表到達最後一頁
+            if len(products) < 250: 
                 break
                 
             page += 1
@@ -128,8 +131,9 @@ def fallback_global_scrape():
                 compare_p_raw = v.get('compare_at_price')
                 if not sale_p_raw: continue
                 
-                sale_p = float(sale_p_raw)
-                old_p = float(compare_p_raw) if compare_p_raw else 0.0
+                # 備用方案同樣乘上匯率轉換為港幣
+                sale_p = float(sale_p_raw) * EXCHANGE_RATE
+                old_p = float(compare_p_raw) * EXCHANGE_RATE if compare_p_raw else 0.0
                 
                 # 只有原價 > 現價，才認定是特價商品
                 if old_p <= sale_p:
@@ -162,6 +166,7 @@ def fallback_global_scrape():
                     })
                     
             print(f"✅ 全站第 {page} 頁掃描完成，累計找出：{len(all_products)} 件特價品")
+            # 修正矛盾：limit 為 250
             if len(products) < 250: break
             page += 1
             time.sleep(1.5)

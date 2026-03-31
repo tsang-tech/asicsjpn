@@ -1,298 +1,370 @@
-import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Zap, Filter, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Search, ChevronDown, ChevronLeft, ChevronRight, ShoppingBag, AlertCircle } from 'lucide-react';
 
-const App = () => {
-  const [allProducts, setAllProducts] = useState([]); // 原始數據
-  const [filteredProducts, setFilteredProducts] = useState([]); // 過濾後的數據
-  const [loading, setLoading] = useState(true);
-  const [cart, setCart] = useState([]);
-  
-  // 分類與分頁狀態
+const ITEMS_PER_PAGE = 50;
+
+// 預覽環境的備用測試資料
+const MOCK_DATA = [
+  {
+    "brand": "JORDAN",
+    "product_name": "Retro High OG 'Royal Reimagined'",
+    "original_market_price": 1599,
+    "your_selling_price": 1159,
+    "image_url": "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=400&h=533&fit=crop",
+    "sizes": ["US 8", "US 9", "US 10"]
+  },
+  {
+    "brand": "STUSSY",
+    "product_name": "Basic Stussy Logo Tee",
+    "original_market_price": 450,
+    "your_selling_price": 320,
+    "image_url": "https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=400&h=533&fit=crop",
+    "sizes": ["S", "M", "L", "XL"]
+  },
+  {
+    "brand": "NIKE",
+    "product_name": "Air Force 1 '07 Premium",
+    "original_market_price": 899,
+    "your_selling_price": 699,
+    "image_url": "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400&h=533&fit=crop",
+    "sizes": ["US 7", "US 8", "US 8.5"]
+  }
+];
+
+export default function App() {
+  const [products, setProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isMockData, setIsMockData] = useState(false);
+
+  // 篩選與分頁狀態
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('All');
+  const [sortOption, setSortOption] = useState('default');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 50;
 
+  // 初始化載入資料
   useEffect(() => {
-    const loadData = async () => {
+    const fetchData = async () => {
       try {
-        // 直接使用檔名 fetch。在你的本地環境 (localhost) 這樣寫就能正確讀取到資料。
-        // 移除了 new URL() 避免在特殊的預覽環境 (如 blob URL) 中引發 Invalid URL 錯誤。
-        const response = await fetch('products.json');
-        
-        if (!response.ok) throw new Error('Network response was not ok');
-        
+        const response = await fetch('/products.json');
+        if (!response.ok) throw new Error('File not found');
         const data = await response.json();
-
-        // 邏輯處理：
-        // 1. 過濾掉標記為 SOLD OUT 的貨品
-        // 2. 確保商品有尺寸資訊 (sizes 陣列不為空)
-        const availableProducts = data.filter(p => 
-          p.status !== 'SOLD OUT' && 
-          Array.isArray(p.sizes) && 
-          p.sizes.length > 0
+        
+        // 過濾無效資料
+        const validData = data.filter(p => 
+          p.product_name && 
+          p.product_name !== 'Unknown Item' && 
+          p.your_selling_price > 0
         );
-        
-        setAllProducts(availableProducts);
-        setFilteredProducts(availableProducts);
-        setLoading(false);
+        setProducts(validData);
       } catch (err) {
-        console.warn("無法載入 products.json (如果您在預覽環境中查看，這是正常的):", err);
-        
-        // 錯誤處理機制：如果抓不到 JSON (例如在網頁預覽器中)，自動提供一些展示用的假資料，
-        // 這樣就不會讓整個網頁卡在「正在掃描...」的畫面或崩潰。
-        const fallbackProducts = [
-          {
-            name: "NIKE AIR MAX PLUS (預覽展示)",
-            brand: "Nike",
-            original_price: 1399,
-            my_price: 899,
-            image: "https://via.placeholder.com/400x533?text=Nike+Air+Max",
-            status: "AVAILABLE",
-            sizes: ["40", "41", "42", "42.5", "43"]
-          },
-          {
-            name: "NEW BALANCE 990V6 (預覽展示)",
-            brand: "New Balance",
-            original_price: 1899,
-            my_price: 1499,
-            image: "https://via.placeholder.com/400x533?text=NB+990V6",
-            status: "AVAILABLE",
-            sizes: ["39", "40", "44"]
-          }
-        ];
-        
-        setAllProducts(fallbackProducts);
-        setFilteredProducts(fallbackProducts);
-        setLoading(false);
+        console.warn('載入真實資料失敗，啟用測試資料。', err);
+        setIsMockData(true);
+        setProducts(MOCK_DATA);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    loadData();
+    fetchData();
   }, []);
 
-  // 當品牌選擇改變時，重置分頁並過濾
-  useEffect(() => {
-    let result = allProducts;
+  // 計算品牌列表與數量
+  const brands = useMemo(() => {
+    const counts = {};
+    products.forEach(p => {
+      if (!p.brand) return;
+      counts[p.brand] = (counts[p.brand] || 0) + 1;
+    });
+
+    const sortedBrands = Object.keys(counts)
+      .sort((a, b) => counts[b] - counts[a])
+      .slice(0, 30); // 取前 30 大品牌
+
+    return [{ name: 'All', count: products.length }, ...sortedBrands.map(b => ({ name: b, count: counts[b] }))];
+  }, [products]);
+
+  // 處理過濾與排序 (利用 useMemo 提升效能)
+  const filteredProducts = useMemo(() => {
+    let result = [...products];
+
+    // 1. 品牌篩選
     if (selectedBrand !== 'All') {
-      result = allProducts.filter(p => p.brand === selectedBrand);
+      result = result.filter(p => p.brand === selectedBrand);
     }
-    setFilteredProducts(result);
+
+    // 2. 關鍵字搜尋
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(p => 
+        (p.product_name && p.product_name.toLowerCase().includes(q)) || 
+        (p.brand && p.brand.toLowerCase().includes(q))
+      );
+    }
+
+    // 3. 排序
+    if (sortOption === 'price-asc') {
+      result.sort((a, b) => a.your_selling_price - b.your_selling_price);
+    } else if (sortOption === 'price-desc') {
+      result.sort((a, b) => b.your_selling_price - a.your_selling_price);
+    }
+
+    return result;
+  }, [products, selectedBrand, searchQuery, sortOption]);
+
+  // 分頁計算
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+  const currentItems = filteredProducts.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE, 
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  // 當篩選條件改變時，回到第一頁
+  useEffect(() => {
     setCurrentPage(1);
-  }, [selectedBrand, allProducts]);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [searchQuery, selectedBrand, sortOption]);
 
-  // 獲取所有不重複的品牌清單
-  const brands = ['All', ...new Set(allProducts.map(p => p.brand).filter(Boolean))];
-
-  // 計算分頁數據
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-
-  const addToCart = (product) => {
-    setCart([...cart, product]);
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#f9f9f9] text-neutral-400">
+        <div className="w-10 h-10 border-4 border-neutral-200 border-t-black rounded-full animate-spin mb-4"></div>
+        <p className="text-[10px] font-black uppercase tracking-[0.3em]">載入庫存中...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-neutral-50 text-neutral-900 font-sans">
-      {/* 頂部通知欄 */}
-      <div className="bg-black text-white text-center py-2 text-[10px] font-bold tracking-[0.2em] uppercase">
-        Global Shipping • 100% Authentic Guaranteed • European Boutique Stock
+    <div className="min-h-screen bg-[#f9f9f9] text-[#1a1a1a] font-sans selection:bg-black selection:text-white">
+      {/* 預覽模式提示 */}
+      {isMockData && (
+        <div className="bg-red-600 text-white text-center py-2 text-[11px] font-bold tracking-widest uppercase shadow-md flex items-center justify-center gap-2">
+          <AlertCircle size={14} />
+          AI 預覽模式已啟用測試資料。本地端執行時將自動讀取真實的 products.json
+        </div>
+      )}
+
+      {/* 頂部跑馬燈 */}
+      <div className="bg-black text-white py-2 overflow-hidden whitespace-nowrap">
+        <div className="animate-[marquee_30s_linear_infinite] inline-block text-[10px] font-bold tracking-[0.2em] uppercase">
+          &nbsp; GLOBAL SHIPPING • 100% AUTHENTIC GUARANTEED • DIRECT FROM EUROPEAN BOUTIQUES • NEW ITEMS ADDED DAILY • GLOBAL SHIPPING • 100% AUTHENTIC GUARANTEED • DIRECT FROM EUROPEAN BOUTIQUES • &nbsp;
+        </div>
       </div>
 
       {/* 導覽列 */}
-      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-neutral-200">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <h1 className="text-xl font-black tracking-tighter italic cursor-pointer" onClick={() => setSelectedBrand('All')}>
+      <nav className="bg-white/80 backdrop-blur-md border-b sticky top-0 z-50 px-4 py-3 shadow-sm">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <h1 
+            className="text-2xl font-black italic tracking-tighter cursor-pointer hover:opacity-70 transition-opacity"
+            onClick={() => { setSelectedBrand('All'); setSearchQuery(''); }}
+          >
             EXCLSV_SELECT
           </h1>
-          
-          <div className="flex items-center gap-6">
-            <div className="relative cursor-pointer">
-              <ShoppingBag size={20} />
-              {cart.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-orange-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-                  {cart.length}
-                </span>
-              )}
-            </div>
+          <div className="flex items-center gap-4">
+            <span className="hidden md:block text-[10px] font-black text-red-600 border-2 border-red-600 px-2 py-0.5 italic">
+              OUTLET LIVE
+            </span>
+            <button className="relative cursor-pointer hover:opacity-70 transition-opacity">
+              <ShoppingBag size={20} strokeWidth={2.5} />
+            </button>
           </div>
         </div>
       </nav>
 
-      {/* 頁首摘要 */}
-      <header className="bg-white border-b border-neutral-100 py-10 px-4 text-center">
-        <h2 className="text-3xl font-black mb-2 uppercase tracking-tight italic">Outlet Inventory</h2>
-        <p className="text-neutral-500 text-xs max-w-md mx-auto leading-relaxed">
-          即時同步歐洲買手店特價庫存。系統已自動隱藏缺貨商品。<br/>
-          價格已包含國際運費與代購服務費。
-        </p>
-      </header>
-
-      {/* 品牌篩選器 */}
-      <div className="max-w-7xl mx-auto px-4 mt-6">
-        <div className="flex items-center gap-2 mb-3 text-[10px] font-black uppercase tracking-widest text-neutral-400">
-          <Filter size={12} /> Filter By Brand
+      <main className="max-w-7xl mx-auto py-8 px-4">
+        {/* 標題與統計 */}
+        <div className="mb-8">
+          <h2 className="text-4xl font-black uppercase tracking-tight italic leading-none mb-2">Mega Sale</h2>
+          <p className="text-neutral-400 text-[10px] font-bold uppercase tracking-widest italic">
+            {filteredProducts.length} ITEMS MATCH YOUR SEARCH
+          </p>
         </div>
-        <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-1">
-          {brands.map(brand => (
-            <button
-              key={brand}
-              onClick={() => setSelectedBrand(brand)}
-              className={`px-4 py-2 text-[10px] font-bold uppercase tracking-wider rounded-full border transition-all ${
-                selectedBrand === brand 
-                ? 'bg-black text-white border-black' 
-                : 'bg-white text-neutral-500 border-neutral-200 hover:border-black'
-              }`}
-            >
-              {brand}
-            </button>
-          ))}
-        </div>
-      </div>
 
-      {/* 產品列表 */}
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-neutral-400">
-            <RefreshCw className="animate-spin mb-4" size={32} />
-            <p className="text-sm font-medium">正在掃描歐洲現貨數據庫...</p>
+        {/* 搜尋與排序工具列 */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 bg-white p-4 rounded-xl shadow-sm border border-neutral-100">
+          <div className="relative w-full md:w-96">
+            <input 
+              type="text" 
+              placeholder="搜尋品牌或單品 (例如 Nike, Jacket)..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 text-sm font-bold border border-neutral-200 rounded-lg focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all bg-[#f9f9f9]"
+            />
+            <Search className="absolute left-3.5 top-3 text-neutral-400" size={16} strokeWidth={3} />
           </div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="text-center py-20 text-neutral-400">
-            <p className="text-sm">目前沒有符合條件的商品。</p>
+          
+          <div className="relative w-full md:w-auto">
+            <select 
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value)}
+              className="w-full md:w-auto text-sm font-bold border border-neutral-200 rounded-lg pl-4 pr-10 py-2.5 focus:outline-none focus:border-black focus:ring-1 focus:ring-black appearance-none bg-[#f9f9f9] cursor-pointer text-neutral-600"
+            >
+              <option value="default">排序: 推薦</option>
+              <option value="price-asc">價格: 由低到高</option>
+              <option value="price-desc">價格: 由高到低</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-3.5 text-neutral-400 pointer-events-none" size={14} strokeWidth={3} />
+          </div>
+        </div>
+
+        {/* 品牌篩選器 */}
+        <div className="mb-12">
+          <div className="flex items-center gap-2 mb-4 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
+            <div className="w-8 h-[1px] bg-neutral-300"></div>
+            熱門品牌
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-4 hide-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {brands.map((brand) => (
+              <button 
+                key={brand.name}
+                onClick={() => setSelectedBrand(brand.name)}
+                className={`px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-full border-2 whitespace-nowrap transition-all
+                  ${selectedBrand === brand.name 
+                    ? 'bg-black text-white border-black shadow-lg scale-105' 
+                    : 'bg-white text-neutral-400 border-neutral-100 hover:border-black hover:text-black'}`}
+              >
+                {brand.name} {brand.name !== 'All' && <span className="opacity-50 ml-1">({brand.count})</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        {/* 商品網格 */}
+        {currentItems.length === 0 ? (
+          <div className="col-span-full py-20 text-center text-neutral-400 font-bold uppercase tracking-widest flex flex-col items-center">
+            <AlertCircle className="w-12 h-12 mb-4 opacity-20" size={48} strokeWidth={2} />
+            找不到符合條件的商品
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-4 gap-y-10">
-              {currentItems.map((product, index) => (
-                <div key={index} className="group flex flex-col h-full">
-                  <div className="aspect-[3/4] overflow-hidden bg-neutral-100 rounded-sm mb-3 relative">
-                    <img 
-                      src={product.image || 'https://via.placeholder.com/400x533?text=Coming+Soon'} 
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                      loading="lazy"
-                    />
-                    <div className="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-black px-2 py-1 italic uppercase">
-                      Sale
-                    </div>
-                  </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-4 gap-y-12">
+            {currentItems.map((p, idx) => (
+              <div key={idx} className="group flex flex-col h-full bg-white rounded-xl p-3 border border-transparent hover:border-neutral-200 transition-all hover:shadow-xl">
+                <div className="aspect-[3/4] overflow-hidden bg-[#f4f4f4] rounded-lg mb-4 relative">
+                  <img 
+                    src={p.image_url || 'https://via.placeholder.com/400x533?text=IMAGE'} 
+                    alt={p.product_name}
+                    className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105" 
+                    loading="lazy"
+                    onError={(e) => { e.target.src = 'https://via.placeholder.com/400x533?text=NOT+FOUND' }}
+                  />
                   
-                  <div className="space-y-1 flex-grow">
-                    <div className="text-[9px] font-black text-orange-600 uppercase tracking-widest">{product.brand || 'Premium'}</div>
-                    <h3 className="font-bold text-[11px] leading-tight h-8 overflow-hidden line-clamp-2 uppercase tracking-tighter">
-                      {product.name}
-                    </h3>
-                    
-                    {/* 剩餘尺寸顯示 */}
-                    <div className="pt-2">
-                      <div className="text-[8px] font-bold text-neutral-400 uppercase mb-1">Available Sizes</div>
-                      <div className="flex flex-wrap gap-1">
-                        {product.sizes && product.sizes.slice(0, 6).map(size => (
-                          <span key={size} className="text-[9px] border border-neutral-200 px-1.5 py-0.5 rounded-sm font-mono bg-white">
-                            {size}
-                          </span>
-                        ))}
-                        {product.sizes?.length > 6 && <span className="text-[8px] text-neutral-400 flex items-center">+{product.sizes.length - 6}</span>}
-                      </div>
+                  {p.original_market_price > p.your_selling_price && (
+                    <div className="bg-gradient-to-tr from-red-500 to-red-700 absolute top-2 left-2 text-white text-[9px] font-black px-2 py-1 rounded-md italic uppercase tracking-tighter shadow-md">
+                      -{Math.round((1 - p.your_selling_price/p.original_market_price)*100)}%
                     </div>
-
-                    <div className="pt-3 flex flex-col">
-                      <span className="text-sm font-black">HK$ {product.my_price}</span>
-                      <span className="text-[9px] text-neutral-400 line-through">
-                        MKT: HK$ {product.original_price}
-                      </span>
-                    </div>
-                  </div>
-
-                  <button 
-                    onClick={() => addToCart(product)}
-                    className="w-full mt-4 py-3 bg-black text-white text-[9px] font-black uppercase tracking-[0.2em] hover:bg-orange-600 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Zap size={10} fill="currentColor" />
-                    Secure Checkout
-                  </button>
+                  )}
                 </div>
-              ))}
-            </div>
-
-            {/* 分頁控制項 */}
-            {totalPages > 1 && (
-              <div className="mt-16 flex flex-col items-center gap-4 border-t border-neutral-200 pt-10">
-                <div className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">
-                  Page {currentPage} of {totalPages} ({filteredProducts.length} items)
-                </div>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => {
-                      setCurrentPage(prev => Math.max(prev - 1, 1));
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    disabled={currentPage === 1}
-                    className="p-2 border border-neutral-200 rounded-sm disabled:opacity-30 hover:bg-white transition-colors"
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
+                
+                <div className="flex-grow space-y-1.5 px-1">
+                  <div className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.15em]">{p.brand || 'Premium'}</div>
+                  <h3 className="font-bold text-[13px] leading-tight h-10 overflow-hidden line-clamp-2 text-neutral-800">
+                    {p.product_name}
+                  </h3>
                   
-                  <div className="flex gap-1 overflow-x-auto max-w-[200px] md:max-w-none">
-                    {[...Array(totalPages)].map((_, i) => {
-                      const pageNum = i + 1;
-                      // 僅顯示目前頁面附近的頁碼以節省空間
-                      if (
-                        pageNum === 1 || 
-                        pageNum === totalPages || 
-                        (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
-                      ) {
-                        return (
-                          <button
-                            key={pageNum}
-                            onClick={() => {
-                              setCurrentPage(pageNum);
-                              window.scrollTo({ top: 0, behavior: 'smooth' });
-                            }}
-                            className={`min-w-[32px] h-8 text-[10px] font-bold border transition-colors ${
-                              currentPage === pageNum 
-                              ? 'bg-black text-white border-black' 
-                              : 'bg-white border-neutral-200 text-neutral-500'
-                            }`}
-                          >
-                            {pageNum}
-                          </button>
-                        );
-                      }
-                      if (pageNum === currentPage - 2 || pageNum === currentPage + 2) {
-                        return <span key={pageNum} className="text-neutral-300">...</span>;
-                      }
-                      return null;
-                    })}
+                  <div className="py-2">
+                    <div className="flex flex-wrap gap-1">
+                      {(p.sizes && p.sizes.length > 0 && p.sizes[0] !== 'F') ? (
+                        <>
+                          {p.sizes.slice(0, 4).map((s, i) => (
+                            <span key={i} className="text-[9px] border border-neutral-200 rounded-md px-1.5 py-0.5 font-bold bg-white text-neutral-600">
+                              {s}
+                            </span>
+                          ))}
+                          {p.sizes.length > 4 && (
+                            <span className="text-[9px] text-neutral-400 self-center ml-1 font-bold">
+                              +{p.sizes.length - 4}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-[9px] text-neutral-400 italic uppercase tracking-widest font-bold">Standard Size</span>
+                      )}
+                    </div>
                   </div>
 
-                  <button 
-                    onClick={() => {
-                      setCurrentPage(prev => Math.min(prev + 1, totalPages));
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    disabled={currentPage === totalPages}
-                    className="p-2 border border-neutral-200 rounded-sm disabled:opacity-30 hover:bg-white transition-colors"
-                  >
-                    <ChevronRight size={16} />
-                  </button>
+                  <div className="pt-2 flex flex-col">
+                    <span className="text-xl font-black italic tracking-tight">HK$ {p.your_selling_price}</span>
+                    {p.original_market_price > p.your_selling_price ? (
+                      <span className="text-[10px] text-neutral-300 line-through tracking-tighter">MSRP: HK$ {p.original_market_price}</span>
+                    ) : (
+                      <span className="text-[10px] text-transparent">MSRP</span>
+                    )}
+                  </div>
                 </div>
+                
+                <button className="w-full mt-4 py-3 bg-neutral-100 text-black rounded-lg text-[10px] font-black uppercase tracking-[0.2em] hover:bg-black hover:text-white active:scale-95 transition-all flex items-center justify-center gap-2">
+                  查看詳情
+                </button>
               </div>
-            )}
-          </>
+            ))}
+          </div>
+        )}
+
+        {/* 分頁控制 */}
+        {totalPages > 0 && (
+          <div className="mt-20 flex flex-col items-center gap-6 border-t border-neutral-100 pt-12">
+            <div className="text-[10px] font-black text-neutral-300 uppercase tracking-[0.4em]">
+              第 {currentPage} 頁 / 共 {totalPages} 頁
+            </div>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="w-10 h-10 flex items-center justify-center border border-neutral-200 rounded-full hover:bg-black hover:text-white transition-all disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-current"
+              >
+                <ChevronLeft size={18} strokeWidth={2.5} />
+              </button>
+              
+              <div className="flex gap-2 font-mono text-sm flex-wrap justify-center">
+                {[...Array(totalPages)].map((_, i) => {
+                  const p = i + 1;
+                  // 只顯示當前頁面附近與首尾頁碼
+                  if (p === 1 || p === totalPages || (p >= currentPage - 2 && p <= currentPage + 2)) {
+                    return (
+                      <button 
+                        key={p}
+                        onClick={() => handlePageChange(p)}
+                        className={`w-8 h-8 rounded-full transition-colors ${currentPage === p ? 'bg-black text-white font-bold shadow-md' : 'text-neutral-400 hover:bg-neutral-100 hover:text-black'}`}
+                      >
+                        {p}
+                      </button>
+                    );
+                  } else if (p === currentPage - 3 || p === currentPage + 3) {
+                    return <span key={p} className="text-neutral-300 px-1 self-center">...</span>;
+                  }
+                  return null;
+                })}
+              </div>
+
+              <button 
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="w-10 h-10 flex items-center justify-center border border-neutral-200 rounded-full hover:bg-black hover:text-white transition-all disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-current"
+              >
+                <ChevronRight size={18} strokeWidth={2.5} />
+              </button>
+            </div>
+          </div>
         )}
       </main>
 
-      <footer className="bg-white border-t border-neutral-200 mt-20 py-12 text-center">
-        <p className="text-[9px] text-neutral-400 uppercase tracking-[0.3em] leading-loose">
-          © 2024 EXCLUSIVE SELECT HK<br/>
-          Authenticated by Expert Curators • Daily Inventory Sync
-        </p>
+      <footer className="bg-black text-white mt-32 py-16 px-4">
+        <div className="max-w-7xl mx-auto text-center space-y-4">
+          <h3 className="text-2xl font-black italic tracking-tighter">EXCLSV_SELECT</h3>
+          <p className="text-[9px] text-neutral-500 uppercase tracking-[0.4em] leading-relaxed">
+            Directly Sourced from EU Boutiques<br/>
+            No Returns on Clearance Items<br/>
+            © 2024 ALL RIGHTS RESERVED
+          </p>
+        </div>
       </footer>
     </div>
   );
-};
-
-export default App;
+}

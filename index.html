@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EXCLSV_SELECT - 旗艦版商城</title>
+
+    <!-- 載入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- 載入 React 核心 -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- 載入 Babel 翻譯機 (讓瀏覽器看懂 React) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-[#f9f9f9]">
+    <div id="root"></div>
+
+    <!-- 這裡就是原本的 app.jsx 內容，直接寫在 HTML 裡面最安全 -->
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        const ITEMS_PER_PAGE = 50;
+
+        const MOCK_DATA = [
+            {
+                "brand": "JORDAN",
+                "name": "Retro High OG 'Royal Reimagined'",
+                "original_price": 1599,
+                "my_price": 1159,
+                "image": "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=400&h=533&fit=crop",
+                "sizes": ["US 8", "US 9", "US 10"],
+                "status": "AVAILABLE"
+            },
+            {
+                "brand": "STUSSY",
+                "name": "Basic Stussy Logo Tee",
+                "original_price": 450,
+                "my_price": 320,
+                "image": "https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=400&h=533&fit=crop",
+                "sizes": ["S", "M", "L", "XL"],
+                "status": "AVAILABLE"
+            }
+        ];
+
+        // 圖示 SVG (取代外部引入，保證 100% 顯示)
+        const Icons = {
+            Search: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
+            ChevronDown: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>,
+            ChevronLeft: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>,
+            ChevronRight: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
+            ShoppingBag: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>,
+            AlertCircle: ({size = 14}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        };
+
+        function App() {
+            const [products, setProducts] = useState([]);
+            const [isLoading, setIsLoading] = useState(true);
+            const [isMockData, setIsMockData] = useState(false);
+            const [searchQuery, setSearchQuery] = useState('');
+            const [selectedBrand, setSelectedBrand] = useState('All');
+            const [sortOption, setSortOption] = useState('default');
+            const [currentPage, setCurrentPage] = useState(1);
+
+            useEffect(() => {
+                const fetchData = async () => {
+                    try {
+                        const response = await fetch('./products.json');
+                        if (!response.ok) throw new Error('File not found');
+                        const data = await response.json();
+                        
+                        if (!Array.isArray(data) || data.length === 0) {
+                            throw new Error('JSON 為空陣列');
+                        }
+
+                        const validData = data.filter(p => p.my_price > 0 || p.original_price > 0);
+                        setProducts(validData.length > 0 ? validData : data);
+                    } catch (err) {
+                        console.warn('載入真實資料失敗，啟用測試資料。', err);
+                        setIsMockData(true);
+                        setProducts(MOCK_DATA);
+                    } finally {
+                        setIsLoading(false);
+                    }
+                };
+                fetchData();
+            }, []);
+
+            const brands = useMemo(() => {
+                const counts = {};
+                products.forEach(p => {
+                    if (!p.brand) return;
+                    counts[p.brand] = (counts[p.brand] || 0) + 1;
+                });
+                const sortedBrands = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 30);
+                return [{ name: 'All', count: products.length }, ...sortedBrands.map(b => ({ name: b, count: counts[b] }))];
+            }, [products]);
+
+            const filteredProducts = useMemo(() => {
+                let result = [...products];
+                if (selectedBrand !== 'All') result = result.filter(p => p.brand === selectedBrand);
+                if (searchQuery.trim()) {
+                    const q = searchQuery.toLowerCase();
+                    result = result.filter(p => (p.name && p.name.toLowerCase().includes(q)) || (p.brand && p.brand.toLowerCase().includes(q)));
+                }
+                if (sortOption === 'price-asc') result.sort((a, b) => a.my_price - b.my_price);
+                else if (sortOption === 'price-desc') result.sort((a, b) => b.my_price - a.my_price);
+                return result;
+            }, [products, selectedBrand, searchQuery, sortOption]);
+
+            const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+            const currentItems = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+            useEffect(() => {
+                setCurrentPage(1);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, [searchQuery, selectedBrand, sortOption]);
+
+            const handlePageChange = (newPage) => {
+                if (newPage >= 1 && newPage <= totalPages) {
+                    setCurrentPage(newPage);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            };
+
+            if (isLoading) {
+                return (
+                    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f9f9f9] text-neutral-400">
+                        <div className="w-10 h-10 border-4 border-neutral-200 border-t-black rounded-full animate-spin mb-4"></div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em]">載入庫存中...</p>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-[#f9f9f9] text-[#1a1a1a] font-sans selection:bg-black selection:text-white">
+                    {isMockData && (
+                        <div className="bg-red-600 text-white text-center py-2 text-[11px] font-bold tracking-widest uppercase shadow-md flex items-center justify-center gap-2">
+                            <Icons.AlertCircle size={14} /> AI 預覽模式已啟用測試資料。
+                        </div>
+                    )}
+
+                    <div className="bg-black text-white py-2 overflow-hidden whitespace-nowrap">
+                        <div className="animate-[marquee_30s_linear_infinite] inline-block text-[10px] font-bold tracking-[0.2em] uppercase">
+                            &nbsp; GLOBAL SHIPPING • 100% AUTHENTIC GUARANTEED • DIRECT FROM EUROPEAN BOUTIQUES • NEW ITEMS ADDED DAILY • GLOBAL SHIPPING • 100% AUTHENTIC GUARANTEED • DIRECT FROM EUROPEAN BOUTIQUES • &nbsp;
+                        </div>
+                    </div>
+
+                    <nav className="bg-white/80 backdrop-blur-md border-b sticky top-0 z-50 px-4 py-3 shadow-sm">
+                        <div className="max-w-7xl mx-auto flex justify-between items-center">
+                            <h1 className="text-2xl font-black italic tracking-tighter cursor-pointer hover:opacity-70 transition-opacity" onClick={() => { setSelectedBrand('All'); setSearchQuery(''); }}>
+                                EXCLSV_SELECT
+                            </h1>
+                            <div className="flex items-center gap-4">
+                                <span className="hidden md:block text-[10px] font-black text-red-600 border-2 border-red-600 px-2 py-0.5 italic">OUTLET LIVE</span>
+                                <button className="relative cursor-pointer hover:opacity-70 transition-opacity">
+                                    <Icons.ShoppingBag />
+                                </button>
+                            </div>
+                        </div>
+                    </nav>
+
+                    <main className="max-w-7xl mx-auto py-8 px-4">
+                        <div className="mb-8">
+                            <h2 className="text-4xl font-black uppercase tracking-tight italic leading-none mb-2">Mega Sale</h2>
+                            <p className="text-neutral-400 text-[10px] font-bold uppercase tracking-widest italic">{filteredProducts.length} ITEMS MATCH YOUR SEARCH</p>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 bg-white p-4 rounded-xl shadow-sm border border-neutral-100">
+                            <div className="relative w-full md:w-96">
+                                <input 
+                                    type="text" placeholder="搜尋品牌或單品 (例如 Nike, Jacket)..." 
+                                    value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2.5 text-sm font-bold border border-neutral-200 rounded-lg focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all bg-[#f9f9f9]"
+                                />
+                                <div className="absolute left-3.5 top-3 text-neutral-400"><Icons.Search /></div>
+                            </div>
+                            
+                            <div className="relative w-full md:w-auto">
+                                <select 
+                                    value={sortOption} onChange={(e) => setSortOption(e.target.value)}
+                                    className="w-full md:w-auto text-sm font-bold border border-neutral-200 rounded-lg pl-4 pr-10 py-2.5 focus:outline-none focus:border-black focus:ring-1 focus:ring-black appearance-none bg-[#f9f9f9] cursor-pointer text-neutral-600"
+                                >
+                                    <option value="default">排序: 推薦</option>
+                                    <option value="price-asc">價格: 由低到高</option>
+                                    <option value="price-desc">價格: 由高到低</option>
+                                </select>
+                                <div className="absolute right-3 top-3.5 text-neutral-400 pointer-events-none"><Icons.ChevronDown /></div>
+                            </div>
+                        </div>
+
+                        <div className="mb-12">
+                            <div className="flex items-center gap-2 mb-4 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
+                                <div className="w-8 h-[1px] bg-neutral-300"></div>熱門品牌
+                            </div>
+                            <div className="flex gap-2 overflow-x-auto pb-4 hide-scrollbar">
+                                {brands.map((brand) => (
+                                    <button 
+                                        key={brand.name} onClick={() => setSelectedBrand(brand.name)}
+                                        className={`px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-full border-2 whitespace-nowrap transition-all ${selectedBrand === brand.name ? 'bg-black text-white border-black shadow-lg scale-105' : 'bg-white text-neutral-400 border-neutral-100 hover:border-black hover:text-black'}`}
+                                    >
+                                        {brand.name} {brand.name !== 'All' && <span className="opacity-50 ml-1">({brand.count})</span>}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        {currentItems.length === 0 ? (
+                            <div className="col-span-full py-20 text-center text-neutral-400 font-bold uppercase tracking-widest flex flex-col items-center">
+                                <div className="mb-4 opacity-20"><Icons.AlertCircle size={48} /></div>
+                                找不到符合條件的商品
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-4 gap-y-12">
+                                {currentItems.map((p, idx) => (
+                                    <div key={idx} className="group flex flex-col h-full bg-white rounded-xl p-3 border border-transparent hover:border-neutral-200 transition-all hover:shadow-xl">
+                                        <div className="aspect-[3/4] overflow-hidden bg-[#f4f4f4] rounded-lg mb-4 relative">
+                                            <img 
+                                                src={p.image || 'https://via.placeholder.com/400x533?text=IMAGE'} 
+                                                alt={p.name}
+                                                className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105" 
+                                                loading="lazy"
+                                                onError={(e) => { e.target.src = 'https://via.placeholder.com/400x533?text=NOT+FOUND' }}
+                                            />
+                                            {p.original_price > p.my_price && (
+                                                <div className="bg-gradient-to-tr from-red-500 to-red-700 absolute top-2 left-2 text-white text-[9px] font-black px-2 py-1 rounded-md italic uppercase tracking-tighter shadow-md">
+                                                    -{Math.round((1 - p.my_price/p.original_price)*100)}%
+                                                </div>
+                                            )}
+                                        </div>
+                                        
+                                        <div className="flex-grow space-y-1.5 px-1">
+                                            <div className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.15em]">{p.brand || 'Premium'}</div>
+                                            <h3 className="font-bold text-[13px] leading-tight h-10 overflow-hidden line-clamp-2 text-neutral-800">{p.name}</h3>
+                                            
+                                            <div className="py-2">
+                                                <div className="flex flex-wrap gap-1">
+                                                    {(p.sizes && p.sizes.length > 0 && p.sizes[0] !== 'F') ? (
+                                                        <>
+                                                            {p.sizes.slice(0, 4).map((s, i) => (
+                                                                <span key={i} className="text-[9px] border border-neutral-200 rounded-md px-1.5 py-0.5 font-bold bg-white text-neutral-600">{s}</span>
+                                                            ))}
+                                                            {p.sizes.length > 4 && <span className="text-[9px] text-neutral-400 self-center ml-1 font-bold">+{p.sizes.length - 4}</span>}
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-[9px] text-neutral-400 italic uppercase tracking-widest font-bold">Standard Size</span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-2 flex flex-col">
+                                                <span className="text-xl font-black italic tracking-tight">HK$ {p.my_price}</span>
+                                                {p.original_price > p.my_price ? (
+                                                    <span className="text-[10px] text-neutral-300 line-through tracking-tighter">MSRP: HK$ {p.original_price}</span>
+                                                ) : (
+                                                    <span className="text-[10px] text-transparent">MSRP</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <button className="w-full mt-4 py-3 bg-neutral-100 text-black rounded-lg text-[10px] font-black uppercase tracking-[0.2em] hover:bg-black hover:text-white active:scale-95 transition-all">
+                                            查看詳情
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {totalPages > 0 && (
+                            <div className="mt-20 flex flex-col items-center gap-6 border-t border-neutral-100 pt-12">
+                                <div className="text-[10px] font-black text-neutral-300 uppercase tracking-[0.4em]">
+                                    第 {currentPage} 頁 / 共 {totalPages} 頁
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="w-10 h-10 flex items-center justify-center border border-neutral-200 rounded-full hover:bg-black hover:text-white transition-all disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-current">
+                                        <Icons.ChevronLeft />
+                                    </button>
+                                    
+                                    <div className="flex gap-2 font-mono text-sm flex-wrap justify-center">
+                                        {[...Array(totalPages)].map((_, i) => {
+                                            const p = i + 1;
+                                            if (p === 1 || p === totalPages || (p >= currentPage - 2 && p <= currentPage + 2)) {
+                                                return <button key={p} onClick={() => handlePageChange(p)} className={`w-8 h-8 rounded-full transition-colors ${currentPage === p ? 'bg-black text-white font-bold shadow-md' : 'text-neutral-400 hover:bg-neutral-100 hover:text-black'}`}>{p}</button>;
+                                            } else if (p === currentPage - 3 || p === currentPage + 3) {
+                                                return <span key={p} className="text-neutral-300 px-1 self-center">...</span>;
+                                            }
+                                            return null;
+                                        })}
+                                    </div>
+
+                                    <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="w-10 h-10 flex items-center justify-center border border-neutral-200 rounded-full hover:bg-black hover:text-white transition-all disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-current">
+                                        <Icons.ChevronRight />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </main>
+
+                    <footer className="bg-black text-white mt-32 py-16 px-4">
+                        <div className="max-w-7xl mx-auto text-center space-y-4">
+                            <h3 className="text-2xl font-black italic tracking-tighter">EXCLSV_SELECT</h3>
+                            <p className="text-[9px] text-neutral-500 uppercase tracking-[0.4em] leading-relaxed">
+                                Directly Sourced from EU Boutiques<br/>No Returns on Clearance Items<br/>© 2024 ALL RIGHTS RESERVED
+                            </p>
+                        </div>
+                    </footer>
+                </div>
+            );
+        }
+
+        // 啟動 React
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

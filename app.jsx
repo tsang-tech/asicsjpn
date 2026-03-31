@@ -46,19 +46,25 @@ export default function App() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('/products.json');
+        // 1. 改用相對路徑，避免 GitHub Pages 等環境抓錯路徑
+        const response = await fetch('./products.json');
         if (!response.ok) throw new Error('File not found');
         const data = await response.json();
         
-        // 過濾無效資料
+        // 2. 如果爬蟲失敗導致 JSON 是空陣列，主動拋出錯誤以觸發測試資料
+        if (!Array.isArray(data) || data.length === 0) {
+          throw new Error('JSON 為空陣列，爬蟲可能失效未抓取到商品');
+        }
+
+        // 3. 放寬過濾條件，只要有價格就先顯示，方便除錯查看爬蟲抓到什麼
         const validData = data.filter(p => 
-          p.product_name && 
-          p.product_name !== 'Unknown Item' && 
-          p.your_selling_price > 0
+          p.your_selling_price > 0 || p.original_market_price > 0
         );
-        setProducts(validData);
+        
+        // 如果過濾後沒東西，但原始 data 有東西，就強迫顯示原始 data
+        setProducts(validData.length > 0 ? validData : data);
       } catch (err) {
-        console.warn('載入真實資料失敗，啟用測試資料。', err);
+        console.warn('載入真實資料失敗或資料為空，啟用測試資料。', err);
         setIsMockData(true);
         setProducts(MOCK_DATA);
       } finally {

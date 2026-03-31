@@ -3,191 +3,365 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EXCLSV_SELECT - Premium Outlet</title>
+    <title>EXCLSV_SELECT - 歐洲精品特賣</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-        .product-card:hover img { transform: scale(1.05); }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+TC:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
+        .product-card:hover .product-img { transform: scale(1.08); }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .badge-sale { background: linear-gradient(45deg, #ef4444, #b91c1c); }
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+            display: inline-block;
+            animation: marquee 30s linear infinite;
+        }
     </style>
 </head>
-<body class="bg-neutral-50 text-neutral-900">
-    <!-- 頂部公告 -->
-    <div class="bg-black text-white text-center py-2 text-[10px] font-bold tracking-[0.2em] uppercase">
-        Global Shipping • 100% Authentic • Daily Inventory Sync
+<body class="bg-[#f9f9f9] text-[#1a1a1a]">
+    <!-- 頂部滾動通知 -->
+    <div class="bg-black text-white py-2 overflow-hidden whitespace-nowrap">
+        <div class="animate-marquee text-[10px] font-bold tracking-[0.2em] uppercase">
+            &nbsp; GLOBAL SHIPPING • 100% AUTHENTIC GUARANTEED • DIRECT FROM EUROPEAN BOUTIQUES • NEW ITEMS ADDED DAILY • GLOBAL SHIPPING • 100% AUTHENTIC GUARANTEED • DIRECT FROM EUROPEAN BOUTIQUES • NEW ITEMS ADDED DAILY • &nbsp;
+        </div>
     </div>
 
     <!-- 導覽列 -->
-    <nav class="bg-white border-b sticky top-0 z-50 p-4 shadow-sm">
+    <nav class="bg-white/80 backdrop-blur-md border-b sticky top-0 z-50 px-4 py-3 shadow-sm">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <h1 class="text-2xl font-black italic tracking-tighter cursor-pointer" onclick="filterBrand('All')">EXCLSV_SELECT</h1>
-            <div class="text-[10px] font-bold text-orange-600 border border-orange-600 px-2 py-1 italic">EUROPE OUTLET DIRECT</div>
+            <h1 class="text-2xl font-black italic tracking-tighter cursor-pointer hover:opacity-70 transition-opacity" onclick="filterBrand('All')">
+                EXCLSV_SELECT
+            </h1>
+            <div class="flex items-center gap-4">
+                <span class="hidden md:block text-[10px] font-black text-red-600 border-2 border-red-600 px-2 py-0.5 italic">OUTLET LIVE</span>
+                <div class="relative cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                </div>
+            </div>
         </div>
     </nav>
 
     <main class="max-w-7xl mx-auto py-8 px-4">
-        <!-- 頁首摘要 -->
-        <div class="text-center mb-10">
-            <h2 class="text-3xl font-black uppercase tracking-tight italic">Sale Inventory</h2>
-            <p id="stats-info" class="text-neutral-500 text-xs mt-2">載入數據中...</p>
+        <!-- 頁首標題 -->
+        <div class="mb-8">
+            <h2 class="text-4xl font-black uppercase tracking-tight italic leading-none mb-2">Mega Sale</h2>
+            <p id="stats-info" class="text-neutral-400 text-[10px] font-bold uppercase tracking-widest italic">Synchronizing inventory...</p>
+        </div>
+
+        <!-- 搜尋與排序工具列 -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 bg-white p-4 rounded-xl shadow-sm border border-neutral-100">
+            <!-- 搜尋框 -->
+            <div class="relative w-full md:w-96">
+                <input type="text" id="searchInput" placeholder="搜尋品牌或單品 (例如 Nike, Jacket)..." class="w-full pl-10 pr-4 py-2.5 text-sm font-bold border border-neutral-200 rounded-lg focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all bg-[#f9f9f9]">
+                <svg class="absolute left-3.5 top-3 text-neutral-400" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </div>
+            
+            <!-- 排序下拉選單 -->
+            <div class="relative w-full md:w-auto">
+                <select id="sortSelect" class="w-full md:w-auto text-sm font-bold border border-neutral-200 rounded-lg pl-4 pr-10 py-2.5 focus:outline-none focus:border-black focus:ring-1 focus:ring-black appearance-none bg-[#f9f9f9] cursor-pointer text-neutral-600">
+                    <option value="default">排序: 推薦</option>
+                    <option value="price-asc">價格: 由低到高</option>
+                    <option value="price-desc">價格: 由高到低</option>
+                </select>
+                <svg class="absolute right-3 top-3.5 text-neutral-400 pointer-events-none" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
         </div>
 
         <!-- 品牌篩選器 -->
-        <div class="mb-8">
-            <div class="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-3 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="2" y1="14" x2="6" y2="14"></line><line x1="10" y1="8" x2="14" y2="8"></line><line x1="18" y1="16" x2="22" y2="16"></line></svg>
-                Filter By Brand
+        <div class="mb-12">
+            <div class="flex items-center gap-2 mb-4 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
+                <div class="w-8 h-[1px] bg-neutral-300"></div>
+                熱門品牌
             </div>
-            <div id="brand-filters" class="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
-                <!-- 品牌按鈕會由 JS 動態生成 -->
+            <div id="brand-filters" class="flex gap-2 overflow-x-auto pb-4 hide-scrollbar">
+                <!-- 由 JavaScript 動態注入 -->
             </div>
         </div>
 
-        <!-- 商品網格 -->
-        <div id="loading" class="text-center py-20 text-neutral-400">
-            <div class="animate-spin inline-block w-8 h-8 border-4 border-current border-t-transparent text-black rounded-full mb-4"></div>
-            <p class="text-sm font-bold uppercase tracking-widest">Scanning European Stocks...</p>
+        <!-- 加載動畫 -->
+        <div id="loading" class="flex flex-col items-center justify-center py-32 text-neutral-400">
+            <div class="w-10 h-10 border-4 border-neutral-200 border-t-black rounded-full animate-spin mb-4"></div>
+            <p class="text-[10px] font-black uppercase tracking-[0.3em]">載入庫存中...</p>
         </div>
         
-        <div id="product-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-4 gap-y-10"></div>
+        <!-- 商品網格 -->
+        <div id="product-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-4 gap-y-12">
+            <!-- 商品卡片 -->
+        </div>
 
-        <!-- 分頁按鈕 -->
-        <div id="pagination" class="mt-16 flex flex-col items-center gap-4 border-t border-neutral-200 pt-10 hidden">
-            <div id="page-info" class="text-[10px] font-bold text-neutral-400 uppercase tracking-widest"></div>
-            <div class="flex items-center gap-2">
-                <button id="prev-page" class="p-2 border border-neutral-200 rounded-sm hover:bg-white disabled:opacity-30">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        <!-- 分頁控制 -->
+        <div id="pagination" class="mt-20 flex flex-col items-center gap-6 border-t border-neutral-100 pt-12 hidden">
+            <div id="page-info" class="text-[10px] font-black text-neutral-300 uppercase tracking-[0.4em]"></div>
+            <div class="flex items-center gap-3">
+                <button id="prev-page" class="w-10 h-10 flex items-center justify-center border border-neutral-200 rounded-full hover:bg-black hover:text-white transition-all disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-current">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                 </button>
-                <div id="page-numbers" class="flex gap-1"></div>
-                <button id="next-page" class="p-2 border border-neutral-200 rounded-sm hover:bg-white disabled:opacity-30">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                <div id="page-numbers" class="flex gap-2 font-mono text-sm flex-wrap justify-center"></div>
+                <button id="next-page" class="w-10 h-10 flex items-center justify-center border border-neutral-200 rounded-full hover:bg-black hover:text-white transition-all disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-current">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
                 </button>
             </div>
         </div>
     </main>
 
-    <footer class="bg-white border-t border-neutral-200 mt-20 py-12 text-center text-[9px] text-neutral-400 uppercase tracking-[0.3em] leading-loose">
-        © 2024 EXCLUSIVE SELECT HK<br/>
-        Directly Curated from European Retailers • Updated Every 24 Hours
+    <footer class="bg-black text-white mt-32 py-16 px-4">
+        <div class="max-w-7xl mx-auto text-center space-y-4">
+            <h3 class="text-2xl font-black italic tracking-tighter">EXCLSV_SELECT</h3>
+            <p class="text-[9px] text-neutral-500 uppercase tracking-[0.4em] leading-relaxed">
+                Directly Sourced from EU Boutiques<br/>
+                No Returns on Clearance Items<br/>
+                © 2024 ALL RIGHTS RESERVED
+            </p>
+        </div>
     </footer>
 
     <script>
         let allProducts = [];
         let filteredProducts = [];
-        let currentBrand = 'All';
-        let currentPage = 1;
-        const itemsPerPage = 50;
+        
+        // 狀態管理
+        let state = {
+            brand: 'All',
+            query: '',
+            sort: 'default',
+            page: 1,
+            itemsPerPage: 50
+        };
 
-        // 初始化
-        fetch('./products.json')
-            .then(res => res.json())
-            .then(data => {
-                // 過濾掉 SOLD OUT 商品
-                allProducts = data.filter(p => p.status !== 'SOLD OUT');
-                filteredProducts = [...allProducts];
-                
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('pagination').classList.remove('hidden');
-                
-                renderBrands();
-                updateDisplay();
-            })
-            .catch(err => {
-                document.getElementById('loading').innerHTML = `<p class="text-red-500">無法載入商品資料，請確保已經執行爬蟲並生成 products.json</p>`;
-            });
+        // 💡 修正 Fetch 錯誤：使用單一的 try-catch 安全處理預覽環境的路徑解析錯誤
+        async function loadData() {
+            try {
+                // 在 VS Code Live Server 下可以正常讀取
+                const response = await fetch('products.json');
+                if (!response.ok) throw new Error('File not found');
+                const data = await response.json();
+                initApp(data);
+            } catch (err) {
+                console.warn('載入失敗 (預期內的預覽環境限制):', err);
+                showError();
+            }
+        }
+
+        function initApp(data) {
+            // 清理數據，屬性名稱精準對齊 products.json
+            allProducts = data.filter(p => 
+                p.product_name && 
+                p.product_name !== 'Unknown Item' && 
+                p.your_selling_price > 0
+            );
+            
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('pagination').classList.remove('hidden');
+            
+            renderBrands();
+            applyFilters();
+        }
+
+        function showError() {
+            // 在 AI 預覽環境下，自動載入精美的測試資料，讓你能看到畫面
+            const mockData = [
+                {
+                    "brand": "JORDAN",
+                    "product_name": "Retro High OG 'Royal Reimagined'",
+                    "original_market_price": 1599,
+                    "your_selling_price": 1159,
+                    "image_url": "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=400&h=533&fit=crop"
+                },
+                {
+                    "brand": "STUSSY",
+                    "product_name": "Basic Stussy Logo Tee",
+                    "original_market_price": 450,
+                    "your_selling_price": 320,
+                    "image_url": "https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=400&h=533&fit=crop"
+                },
+                {
+                    "brand": "NIKE",
+                    "product_name": "Air Force 1 '07 Premium",
+                    "original_market_price": 899,
+                    "your_selling_price": 699,
+                    "image_url": "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400&h=533&fit=crop"
+                }
+            ];
+            
+            // 加入提示橫幅
+            const notice = document.createElement('div');
+            notice.className = "bg-red-600 text-white text-center py-2 text-[11px] font-bold tracking-widest uppercase shadow-md";
+            notice.innerText = "💡 AI 預覽模式已啟用測試資料。本地端執行時將自動讀取真實的 products.json";
+            document.body.insertBefore(notice, document.body.firstChild);
+            
+            // 使用測試資料初始化
+            initApp(mockData);
+        }
+
+        // 綁定事件監聽器
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            state.query = e.target.value.toLowerCase().trim();
+            state.page = 1;
+            applyFilters();
+        });
+
+        document.getElementById('sortSelect').addEventListener('change', (e) => {
+            state.sort = e.target.value;
+            state.page = 1;
+            applyFilters();
+        });
 
         function renderBrands() {
-            const brands = ['All', ...new Set(allProducts.map(p => p.brand).filter(Boolean))];
+            const brandCounts = {};
+            allProducts.forEach(p => {
+                if (!p.brand) return;
+                brandCounts[p.brand] = (brandCounts[p.brand] || 0) + 1;
+            });
+
+            const sortedBrands = Object.keys(brandCounts)
+                                       .sort((a, b) => brandCounts[b] - brandCounts[a])
+                                       .slice(0, 30);
+            
+            const brands = ['All', ...sortedBrands];
             const container = document.getElementById('brand-filters');
+            
             container.innerHTML = brands.map(brand => `
                 <button onclick="filterBrand('${brand}')" 
-                        class="brand-btn px-4 py-2 text-[10px] font-bold uppercase tracking-wider rounded-full border whitespace-nowrap transition-all
-                        ${currentBrand === brand ? 'bg-black text-white border-black' : 'bg-white text-neutral-500 border-neutral-200 hover:border-black'}">
-                    ${brand}
+                        class="px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-full border-2 whitespace-nowrap transition-all
+                        ${state.brand === brand ? 'bg-black text-white border-black shadow-lg scale-105' : 'bg-white text-neutral-400 border-neutral-100 hover:border-black hover:text-black'}">
+                    ${brand} ${brand !== 'All' ? `<span class="opacity-50 ml-1">(${brandCounts[brand]})</span>` : ''}
                 </button>
             `).join('');
         }
 
         function filterBrand(brand) {
-            currentBrand = brand;
-            currentPage = 1;
-            filteredProducts = brand === 'All' ? allProducts : allProducts.filter(p => p.brand === brand);
+            state.brand = brand;
+            state.page = 1;
             renderBrands();
-            updateDisplay();
+            applyFilters();
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function applyFilters() {
+            let result = [...allProducts];
+
+            if (state.brand !== 'All') {
+                result = result.filter(p => p.brand === state.brand);
+            }
+
+            if (state.query) {
+                // 對齊屬性 product_name
+                result = result.filter(p => 
+                    (p.product_name && p.product_name.toLowerCase().includes(state.query)) || 
+                    (p.brand && p.brand.toLowerCase().includes(state.query))
+                );
+            }
+
+            // 對齊屬性 your_selling_price
+            if (state.sort === 'price-asc') {
+                result.sort((a, b) => a.your_selling_price - b.your_selling_price);
+            } else if (state.sort === 'price-desc') {
+                result.sort((a, b) => b.your_selling_price - a.your_selling_price);
+            }
+
+            filteredProducts = result;
+            updateDisplay();
         }
 
         function updateDisplay() {
             const grid = document.getElementById('product-grid');
-            const start = (currentPage - 1) * itemsPerPage;
-            const end = start + itemsPerPage;
+            const start = (state.page - 1) * state.itemsPerPage;
+            const end = start + state.itemsPerPage;
             const pageItems = filteredProducts.slice(start, end);
-            const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+            const totalPages = Math.ceil(filteredProducts.length / state.itemsPerPage);
 
-            document.getElementById('stats-info').innerText = `目前顯示 ${filteredProducts.length} 件符合條件的商品`;
-            document.getElementById('page-info').innerText = `PAGE ${currentPage} OF ${totalPages}`;
+            document.getElementById('stats-info').innerText = `${filteredProducts.length} 件商品符合您的搜尋`;
+            document.getElementById('page-info').innerText = `第 ${state.page} 頁 / 共 ${totalPages || 1} 頁`;
 
+            if(pageItems.length === 0) {
+                grid.innerHTML = `<div class="col-span-full py-20 text-center text-neutral-400 font-bold uppercase tracking-widest flex flex-col items-center">
+                    <svg class="w-12 h-12 mb-4 opacity-20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    找不到符合條件的商品
+                </div>`;
+                renderPagination(0);
+                return;
+            }
+
+            // 完全替換為對應的 JSON 屬性 (image_url, your_selling_price, original_market_price, product_name)
             grid.innerHTML = pageItems.map(p => `
-                <div class="flex flex-col h-full group">
-                    <div class="aspect-[3/4] overflow-hidden bg-neutral-100 rounded-sm mb-3 relative">
-                        <img src="${p.image || 'https://via.placeholder.com/400x533'}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy">
-                        <div class="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-black px-2 py-1 italic uppercase shadow-lg">Sale</div>
-                    </div>
-                    <div class="flex-grow space-y-1">
-                        <div class="text-[9px] font-black text-orange-600 uppercase tracking-widest">${p.brand || 'Premium'}</div>
-                        <h3 class="font-bold text-[11px] leading-tight h-8 overflow-hidden line-clamp-2 uppercase tracking-tighter">${p.name}</h3>
+                <div class="group flex flex-col h-full bg-white rounded-xl p-3 border border-transparent hover:border-neutral-200 transition-all hover:shadow-xl">
+                    <div class="aspect-[3/4] overflow-hidden bg-[#f4f4f4] rounded-lg mb-4 relative">
+                        <img src="${p.image_url || 'https://via.placeholder.com/400x533?text=IMAGE'}" 
+                             class="product-img w-full h-full object-cover transition-transform duration-1000 ease-out" 
+                             loading="lazy"
+                             onerror="this.src='https://via.placeholder.com/400x533?text=NOT+FOUND'">
                         
-                        <div class="pt-2">
-                            <div class="text-[8px] font-bold text-neutral-400 uppercase mb-1">Available Sizes</div>
+                        ${p.original_market_price > p.your_selling_price ? `
+                        <div class="badge-sale absolute top-2 left-2 text-white text-[9px] font-black px-2 py-1 rounded-md italic uppercase tracking-tighter shadow-md">
+                            -${Math.round((1 - p.your_selling_price/p.original_market_price)*100)}%
+                        </div>` : ''}
+                    </div>
+                    
+                    <div class="flex-grow space-y-1.5 px-1">
+                        <div class="text-[10px] font-black text-neutral-400 uppercase tracking-[0.15em]">${p.brand || 'Premium'}</div>
+                        <h3 class="font-bold text-[13px] leading-tight h-10 overflow-hidden line-clamp-2 text-neutral-800">
+                            ${p.product_name}
+                        </h3>
+                        
+                        <div class="py-2">
                             <div class="flex flex-wrap gap-1">
-                                ${(p.sizes || []).slice(0, 5).map(s => `<span class="text-[9px] border border-neutral-200 px-1 py-0.5 font-mono">${s}</span>`).join('')}
-                                ${p.sizes && p.sizes.length > 5 ? `<span class="text-[8px] text-neutral-400 flex items-center">+${p.sizes.length-5}</span>` : ''}
+                                ${(p.sizes && p.sizes.length > 0 && p.sizes[0] !== 'F') ? 
+                                    p.sizes.slice(0, 4).map(s => `<span class="text-[9px] border border-neutral-200 rounded-md px-1.5 py-0.5 font-bold bg-white text-neutral-600">${s}</span>`).join('') + 
+                                    (p.sizes.length > 4 ? `<span class="text-[9px] text-neutral-400 self-center ml-1 font-bold">+${p.sizes.length-4}</span>` : '') 
+                                    : `<span class="text-[9px] text-neutral-400 italic uppercase tracking-widest font-bold">Standard Size</span>`
+                                }
                             </div>
                         </div>
 
-                        <div class="pt-3 flex flex-col">
-                            <span class="text-sm font-black italic">HK$ ${p.my_price}</span>
-                            <span class="text-[9px] text-neutral-400 line-through tracking-tighter">MKT: HK$ ${p.original_price}</span>
+                        <div class="pt-2 flex flex-col">
+                            <span class="text-xl font-black italic tracking-tight">HK$ ${p.your_selling_price}</span>
+                            ${p.original_market_price > p.your_selling_price ? `
+                            <span class="text-[10px] text-neutral-300 line-through tracking-tighter">MSRP: HK$ ${p.original_market_price}</span>
+                            ` : '<span class="text-[10px] text-transparent">MSRP</span>'}
                         </div>
                     </div>
-                    <button class="w-full mt-4 py-3 bg-black text-white text-[9px] font-black uppercase tracking-[0.2em] hover:bg-orange-600 transition-colors flex items-center justify-center gap-2 shadow-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                        Secure Order
+                    
+                    <button class="w-full mt-4 py-3 bg-neutral-100 text-black rounded-lg text-[10px] font-black uppercase tracking-[0.2em] hover:bg-black hover:text-white active:scale-95 transition-all flex items-center justify-center gap-2">
+                        查看詳情
                     </button>
                 </div>
             `).join('');
 
-            // 分頁邏輯
             renderPagination(totalPages);
         }
 
         function renderPagination(total) {
             const container = document.getElementById('page-numbers');
-            document.getElementById('prev-page').disabled = currentPage === 1;
-            document.getElementById('next-page').disabled = currentPage === total;
+            document.getElementById('prev-page').disabled = state.page === 1;
+            document.getElementById('next-page').disabled = state.page === total || total === 0;
 
-            document.getElementById('prev-page').onclick = () => { currentPage--; updateDisplay(); window.scrollTo({top:0}); };
-            document.getElementById('next-page').onclick = () => { currentPage++; updateDisplay(); window.scrollTo({top:0}); };
+            document.getElementById('prev-page').onclick = () => { state.page--; updateDisplay(); window.scrollTo({top: 0}); };
+            document.getElementById('next-page').onclick = () => { state.page++; updateDisplay(); window.scrollTo({top: 0}); };
 
-            // 簡易分頁按鈕 (顯示當前及前後)
             let btns = "";
+            const range = 2;
             for (let i = 1; i <= total; i++) {
-                if (i === 1 || i === total || (i >= currentPage - 1 && i <= currentPage + 1)) {
-                    btns += `<button onclick="goToPage(${i})" class="w-8 h-8 text-[10px] font-bold border ${currentPage === i ? 'bg-black text-white border-black' : 'bg-white border-neutral-200 text-neutral-500'}">${i}</button>`;
-                } else if (i === currentPage - 2 || i === currentPage + 2) {
-                    btns += `<span class="text-neutral-300">...</span>`;
+                if (i === 1 || i === total || (i >= state.page - range && i <= state.page + range)) {
+                    btns += `<button onclick="goToPage(${i})" class="w-8 h-8 rounded-full transition-colors ${state.page === i ? 'bg-black text-white font-bold shadow-md' : 'text-neutral-400 hover:bg-neutral-100 hover:text-black'}">${i}</button>`;
+                } else if (i === state.page - range - 1 || i === state.page + range + 1) {
+                    btns += `<span class="text-neutral-300 px-1">...</span>`;
                 }
             }
             container.innerHTML = btns;
         }
 
         function goToPage(p) {
-            currentPage = p;
+            state.page = p;
             updateDisplay();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
+
+        // 啟動加載
+        window.onload = loadData;
     </script>
 </body>
 </html>

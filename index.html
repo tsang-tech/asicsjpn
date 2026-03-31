@@ -29,8 +29,8 @@
         // --- 核心設定區 ---
         const WHATSAPP_NUMBER = "85251264018";
         const ADMIN_EMAIL = "tschho@gmail.com";
-        const CURRENCY_RATE = 8.5; 
-        const PRICE_MARKUP = 250;
+        const CURRENCY_RATE = 1; 
+        const PRICE_MARKUP = 1;
         const ITEMS_PER_PAGE = 50;
 
         const calculatePrice = (price) => {
@@ -66,6 +66,7 @@
             const [activeModal, setActiveModal] = useState(null); 
             const [selectedProduct, setSelectedProduct] = useState(null); 
             const [selectedSize, setSelectedSize] = useState(''); 
+            const [orderLinks, setOrderLinks] = useState({ waUrl: '', mailUrl: '' }); // 儲存發送連結
 
             // 表單資訊
             const [formData, setFormData] = useState({
@@ -125,16 +126,19 @@
                               `💳 付款方式: ${paymentMethod.toUpperCase()}\n\n` +
                               `請核對款項並安排發貨。`;
 
-                // 1. 開啟 WhatsApp
                 const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-                window.open(waUrl, '_blank');
-
-                // 2. 開啟 Email
                 const mailUrl = `mailto:${ADMIN_EMAIL}?subject=${encodeURIComponent(`[訂單 #${orderId}] ${formData.lastName} 的新訂單`)}&body=${encodeURIComponent(message)}`;
-                window.location.href = mailUrl;
 
+                // 將連結存入 State 供成功頁面的按鈕使用
+                setOrderLinks({ waUrl, mailUrl });
                 setActiveModal('success');
                 setCart([]); 
+
+                // 在手機上，直接修改 location.href 是最不容易被擋下的自動跳轉方式
+                // 延遲一點點讓 DOM 渲染完成
+                setTimeout(() => {
+                    window.location.href = waUrl;
+                }, 300);
             };
 
             if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-[#f9f9f9] font-bold">讀取庫存中...</div>;
@@ -288,7 +292,7 @@
                                         <div className="bg-neutral-50 border p-6 rounded-xl text-center">
                                             {paymentMethod === 'fps' && <p className="text-2xl font-black text-emerald-600">FPS ID: 1234567</p>}
                                             {paymentMethod === 'payme' && <p className="text-2xl font-black text-red-500">PayMe: +852 51264018</p>}
-                                            <p className="text-[10px] text-neutral-400 mt-2 font-bold">⚠️ 完成轉帳後，點擊下方按鈕將自動透過 WhatsApp 及 Email 通知我們。</p>
+                                            <p className="text-[10px] text-neutral-400 mt-2 font-bold">⚠️ 完成轉帳後，點擊下方按鈕將生成您的訂單。</p>
                                         </div>
                                     </div>
                                     <button type="submit" className="w-full py-4 bg-black text-white font-black text-lg rounded-xl shadow-lg">我已付款，提交訂單通知</button>
@@ -297,14 +301,25 @@
                         </div>
                     )}
 
-                    {/* 成功頁面 */}
+                    {/* 成功頁面與手動發送選項 */}
                     {activeModal === 'success' && (
                         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 modal-overlay">
                             <div className="bg-white rounded-2xl w-full max-w-sm p-8 shadow-2xl text-center fade-in">
                                 <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6 mx-auto"><Icons.Check /></div>
-                                <h2 className="text-2xl font-black mb-2">訂單已發送！</h2>
-                                <p className="text-neutral-500 text-sm mb-8">我們已收到您的 WhatsApp 和 Email 通知，客服會盡快核實並發貨。</p>
-                                <button onClick={() => setActiveModal(null)} className="w-full py-3 bg-black text-white font-black rounded-lg">返回首頁</button>
+                                <h2 className="text-2xl font-black mb-2">訂單已生成！</h2>
+                                <p className="text-neutral-500 text-sm mb-6">系統正在為您跳轉至 WhatsApp 發送詳情...</p>
+                                
+                                {/* 保底按鈕區塊 */}
+                                <div className="space-y-3 mb-8">
+                                    <a href={orderLinks.waUrl} target="_blank" rel="noopener noreferrer" className="block w-full py-3.5 bg-[#25D366] text-white font-black rounded-xl shadow-md hover:opacity-90 transition-opacity">
+                                        🟢 確認發送 WhatsApp
+                                    </a>
+                                    <a href={orderLinks.mailUrl} className="block w-full py-3.5 bg-neutral-800 text-white font-black rounded-xl shadow-md hover:opacity-90 transition-opacity">
+                                        ✉️ 透過 Email 發送備份
+                                    </a>
+                                </div>
+
+                                <button onClick={() => setActiveModal(null)} className="text-sm font-bold text-neutral-400 hover:text-black underline">返回首頁繼續選購</button>
                             </div>
                         </div>
                     )}

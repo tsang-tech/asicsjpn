@@ -29,10 +29,10 @@
         // --- 核心設定區 ---
         const ITEMS_PER_PAGE = 50;
         
-        // 價錢計算公式： (原價 * 匯率) + 0
+        // 價錢計算公式： (原價 * 匯率) + 1
         // 如果你的 JSON 已經是港幣了，請把 CURRENCY_RATE 改成 1
         const CURRENCY_RATE = 1; 
-        const PRICE_MARKUP = 0;
+        const PRICE_MARKUP = 1;
 
         const calculatePrice = (price) => {
             if (!price || price <= 0) return 0;

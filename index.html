@@ -5,87 +5,87 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EXCLSV_SELECT - 旗艦版商城</title>
 
-    <!-- 載入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- 載入 React 核心 -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    
-    <!-- 載入 Babel 翻譯機 (讓瀏覽器看懂 React) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .modal-overlay { background-color: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); }
+        .slide-in-right { animation: slideInRight 0.3s ease-out forwards; }
+        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        .fade-in { animation: fadeIn 0.2s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; scale: 0.95; } to { opacity: 1; scale: 1; } }
     </style>
 </head>
 <body class="bg-[#f9f9f9]">
     <div id="root"></div>
 
-    <!-- 這裡就是原本的 app.jsx 內容，直接寫在 HTML 裡面最安全 -->
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
+        // --- 核心設定區 ---
         const ITEMS_PER_PAGE = 50;
+        
+        // 價錢計算公式： (原價 * 匯率) + 250
+        // 如果你的 JSON 已經是港幣了，請把 CURRENCY_RATE 改成 1
+        const CURRENCY_RATE = 8.5; 
+        const PRICE_MARKUP = 250;
 
-        const MOCK_DATA = [
-            {
-                "brand": "JORDAN",
-                "name": "Retro High OG 'Royal Reimagined'",
-                "original_price": 1599,
-                "my_price": 1159,
-                "image": "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=400&h=533&fit=crop",
-                "sizes": ["US 8", "US 9", "US 10"],
-                "status": "AVAILABLE"
-            },
-            {
-                "brand": "STUSSY",
-                "name": "Basic Stussy Logo Tee",
-                "original_price": 450,
-                "my_price": 320,
-                "image": "https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=400&h=533&fit=crop",
-                "sizes": ["S", "M", "L", "XL"],
-                "status": "AVAILABLE"
-            }
-        ];
+        const calculatePrice = (price) => {
+            if (!price || price <= 0) return 0;
+            return Math.round(price * CURRENCY_RATE) + PRICE_MARKUP;
+        };
 
-        // 圖示 SVG (取代外部引入，保證 100% 顯示)
+        const formatSize = (size) => {
+            if (!size) return '';
+            // 如果尺碼是數字開頭 (例如 8, 10.5)，前面加上 US
+            return /^\d/.test(size) ? `US ${size}` : size;
+        };
+
+        // --- SVG 圖示庫 ---
         const Icons = {
             Search: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
             ChevronDown: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>,
             ChevronLeft: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>,
             ChevronRight: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
             ShoppingBag: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>,
-            AlertCircle: ({size = 14}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            User: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>,
+            X: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
+            Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
+            Check: () => <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
         };
 
         function App() {
+            // --- 狀態管理 ---
             const [products, setProducts] = useState([]);
             const [isLoading, setIsLoading] = useState(true);
-            const [isMockData, setIsMockData] = useState(false);
             const [searchQuery, setSearchQuery] = useState('');
             const [selectedBrand, setSelectedBrand] = useState('All');
             const [sortOption, setSortOption] = useState('default');
             const [currentPage, setCurrentPage] = useState(1);
 
+            // 購物車與使用者狀態
+            const [cart, setCart] = useState([]);
+            const [user, setUser] = useState(null); // null, {name: 'John'}, 或 {type: 'guest'}
+
+            // 彈出視窗狀態
+            const [activeModal, setActiveModal] = useState(null); // 'detail', 'cart', 'auth', 'checkout', 'success'
+            const [selectedProduct, setSelectedProduct] = useState(null); // 當前查看詳情的商品
+            const [selectedSize, setSelectedSize] = useState(''); // 在詳情頁選擇的尺碼
+
+            // --- 資料載入 ---
             useEffect(() => {
                 const fetchData = async () => {
                     try {
                         const response = await fetch('./products.json');
-                        if (!response.ok) throw new Error('File not found');
                         const data = await response.json();
-                        
-                        if (!Array.isArray(data) || data.length === 0) {
-                            throw new Error('JSON 為空陣列');
-                        }
-
                         const validData = data.filter(p => p.my_price > 0 || p.original_price > 0);
                         setProducts(validData.length > 0 ? validData : data);
                     } catch (err) {
-                        console.warn('載入真實資料失敗，啟用測試資料。', err);
-                        setIsMockData(true);
-                        setProducts(MOCK_DATA);
+                        console.error('資料載入失敗', err);
                     } finally {
                         setIsLoading(false);
                     }
@@ -93,12 +93,10 @@
                 fetchData();
             }, []);
 
+            // --- 篩選與排序邏輯 ---
             const brands = useMemo(() => {
                 const counts = {};
-                products.forEach(p => {
-                    if (!p.brand) return;
-                    counts[p.brand] = (counts[p.brand] || 0) + 1;
-                });
+                products.forEach(p => { if (p.brand) counts[p.brand] = (counts[p.brand] || 0) + 1; });
                 const sortedBrands = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 30);
                 return [{ name: 'All', count: products.length }, ...sortedBrands.map(b => ({ name: b, count: counts[b] }))];
             }, [products]);
@@ -110,211 +108,359 @@
                     const q = searchQuery.toLowerCase();
                     result = result.filter(p => (p.name && p.name.toLowerCase().includes(q)) || (p.brand && p.brand.toLowerCase().includes(q)));
                 }
-                if (sortOption === 'price-asc') result.sort((a, b) => a.my_price - b.my_price);
-                else if (sortOption === 'price-desc') result.sort((a, b) => b.my_price - a.my_price);
+                
+                result.forEach(p => {
+                    p.calcMyPrice = calculatePrice(p.my_price);
+                    p.calcOrigPrice = calculatePrice(p.original_price);
+                });
+
+                if (sortOption === 'price-asc') result.sort((a, b) => a.calcMyPrice - b.calcMyPrice);
+                else if (sortOption === 'price-desc') result.sort((a, b) => b.calcMyPrice - a.calcMyPrice);
                 return result;
             }, [products, selectedBrand, searchQuery, sortOption]);
 
             const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
             const currentItems = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
-            useEffect(() => {
-                setCurrentPage(1);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }, [searchQuery, selectedBrand, sortOption]);
+            // --- 購物車與互動邏輯 ---
+            const openProductDetail = (product) => {
+                setSelectedProduct(product);
+                setSelectedSize('');
+                setActiveModal('detail');
+            };
 
-            const handlePageChange = (newPage) => {
-                if (newPage >= 1 && newPage <= totalPages) {
-                    setCurrentPage(newPage);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+            const addToCart = () => {
+                if (!selectedSize && selectedProduct.sizes?.length > 0) {
+                    alert('請先選擇尺碼！');
+                    return;
+                }
+                const cartItem = {
+                    ...selectedProduct,
+                    cartId: Math.random().toString(36).substr(2, 9),
+                    selectedSize: selectedSize || 'F',
+                    price: selectedProduct.calcMyPrice
+                };
+                setCart([...cart, cartItem]);
+                setActiveModal('cart'); // 加入後直接打開購物車
+            };
+
+            const removeFromCart = (cartId) => {
+                setCart(cart.filter(item => item.cartId !== cartId));
+            };
+
+            const cartTotal = cart.reduce((sum, item) => sum + item.price, 0);
+
+            const handleCheckoutClick = () => {
+                if (cart.length === 0) return;
+                if (!user) {
+                    setActiveModal('auth'); // 沒登入就跳登入視窗
+                } else {
+                    setActiveModal('checkout'); // 有登入直接結帳
                 }
             };
 
-            if (isLoading) {
-                return (
-                    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f9f9f9] text-neutral-400">
-                        <div className="w-10 h-10 border-4 border-neutral-200 border-t-black rounded-full animate-spin mb-4"></div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em]">載入庫存中...</p>
-                    </div>
-                );
-            }
+            const handleLogin = (e) => {
+                e.preventDefault();
+                setUser({ name: '會員' });
+                setActiveModal('checkout');
+            };
+
+            const handleGuestCheckout = () => {
+                setUser({ type: 'guest', name: '遊客' });
+                setActiveModal('checkout');
+            };
+
+            const handlePayment = (e) => {
+                e.preventDefault();
+                setActiveModal('success');
+                setCart([]); // 清空購物車
+            };
+
+            // --- 載入中畫面 ---
+            if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-[#f9f9f9]">載入中...</div>;
 
             return (
-                <div className="min-h-screen bg-[#f9f9f9] text-[#1a1a1a] font-sans selection:bg-black selection:text-white">
-                    {isMockData && (
-                        <div className="bg-red-600 text-white text-center py-2 text-[11px] font-bold tracking-widest uppercase shadow-md flex items-center justify-center gap-2">
-                            <Icons.AlertCircle size={14} /> AI 預覽模式已啟用測試資料。
-                        </div>
-                    )}
-
-                    <div className="bg-black text-white py-2 overflow-hidden whitespace-nowrap">
-                        <div className="animate-[marquee_30s_linear_infinite] inline-block text-[10px] font-bold tracking-[0.2em] uppercase">
-                            &nbsp; GLOBAL SHIPPING • 100% AUTHENTIC GUARANTEED • DIRECT FROM EUROPEAN BOUTIQUES • NEW ITEMS ADDED DAILY • GLOBAL SHIPPING • 100% AUTHENTIC GUARANTEED • DIRECT FROM EUROPEAN BOUTIQUES • &nbsp;
-                        </div>
-                    </div>
-
-                    <nav className="bg-white/80 backdrop-blur-md border-b sticky top-0 z-50 px-4 py-3 shadow-sm">
+                <div className="min-h-screen bg-[#f9f9f9] text-[#1a1a1a] font-sans relative">
+                    
+                    {/* --- 導覽列 --- */}
+                    <nav className="bg-white/90 backdrop-blur-md border-b sticky top-0 z-40 px-4 py-3 shadow-sm">
                         <div className="max-w-7xl mx-auto flex justify-between items-center">
-                            <h1 className="text-2xl font-black italic tracking-tighter cursor-pointer hover:opacity-70 transition-opacity" onClick={() => { setSelectedBrand('All'); setSearchQuery(''); }}>
+                            <h1 className="text-2xl font-black italic tracking-tighter cursor-pointer hover:opacity-70" onClick={() => { setActiveModal(null); setSelectedBrand('All'); }}>
                                 EXCLSV_SELECT
                             </h1>
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-6">
                                 <span className="hidden md:block text-[10px] font-black text-red-600 border-2 border-red-600 px-2 py-0.5 italic">OUTLET LIVE</span>
-                                <button className="relative cursor-pointer hover:opacity-70 transition-opacity">
+                                
+                                {/* 帳戶圖示 */}
+                                <button onClick={() => !user ? setActiveModal('auth') : alert(`目前以 ${user.name} 身分登入`)} className="hover:opacity-70 flex items-center gap-1">
+                                    <Icons.User />
+                                    {user && <span className="text-xs font-bold hidden md:inline">{user.name}</span>}
+                                </button>
+                                
+                                {/* 購物車圖示 */}
+                                <button onClick={() => setActiveModal('cart')} className="relative cursor-pointer hover:opacity-70 transition-opacity">
                                     <Icons.ShoppingBag />
+                                    {cart.length > 0 && (
+                                        <span className="absolute -top-1.5 -right-2 bg-red-600 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                                            {cart.length}
+                                        </span>
+                                    )}
                                 </button>
                             </div>
                         </div>
                     </nav>
 
+                    {/* --- 主內容區 --- */}
                     <main className="max-w-7xl mx-auto py-8 px-4">
-                        <div className="mb-8">
-                            <h2 className="text-4xl font-black uppercase tracking-tight italic leading-none mb-2">Mega Sale</h2>
-                            <p className="text-neutral-400 text-[10px] font-bold uppercase tracking-widest italic">{filteredProducts.length} ITEMS MATCH YOUR SEARCH</p>
-                        </div>
-
-                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 bg-white p-4 rounded-xl shadow-sm border border-neutral-100">
+                        {/* 搜尋與排序 */}
+                        <div className="flex flex-col md:flex-row justify-between gap-4 mb-8 bg-white p-4 rounded-xl shadow-sm border border-neutral-100">
                             <div className="relative w-full md:w-96">
-                                <input 
-                                    type="text" placeholder="搜尋品牌或單品 (例如 Nike, Jacket)..." 
-                                    value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2.5 text-sm font-bold border border-neutral-200 rounded-lg focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all bg-[#f9f9f9]"
-                                />
+                                <input type="text" placeholder="搜尋品牌或單品..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2.5 text-sm font-bold border rounded-lg bg-[#f9f9f9]" />
                                 <div className="absolute left-3.5 top-3 text-neutral-400"><Icons.Search /></div>
                             </div>
-                            
-                            <div className="relative w-full md:w-auto">
-                                <select 
-                                    value={sortOption} onChange={(e) => setSortOption(e.target.value)}
-                                    className="w-full md:w-auto text-sm font-bold border border-neutral-200 rounded-lg pl-4 pr-10 py-2.5 focus:outline-none focus:border-black focus:ring-1 focus:ring-black appearance-none bg-[#f9f9f9] cursor-pointer text-neutral-600"
-                                >
-                                    <option value="default">排序: 推薦</option>
-                                    <option value="price-asc">價格: 由低到高</option>
-                                    <option value="price-desc">價格: 由高到低</option>
-                                </select>
-                                <div className="absolute right-3 top-3.5 text-neutral-400 pointer-events-none"><Icons.ChevronDown /></div>
-                            </div>
+                            <select value={sortOption} onChange={(e) => setSortOption(e.target.value)} className="text-sm font-bold border rounded-lg px-4 py-2.5 bg-[#f9f9f9] cursor-pointer outline-none">
+                                <option value="default">排序: 推薦</option>
+                                <option value="price-asc">價格: 由低到高</option>
+                                <option value="price-desc">價格: 由高到低</option>
+                            </select>
                         </div>
 
-                        <div className="mb-12">
-                            <div className="flex items-center gap-2 mb-4 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
-                                <div className="w-8 h-[1px] bg-neutral-300"></div>熱門品牌
-                            </div>
-                            <div className="flex gap-2 overflow-x-auto pb-4 hide-scrollbar">
-                                {brands.map((brand) => (
-                                    <button 
-                                        key={brand.name} onClick={() => setSelectedBrand(brand.name)}
-                                        className={`px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-full border-2 whitespace-nowrap transition-all ${selectedBrand === brand.name ? 'bg-black text-white border-black shadow-lg scale-105' : 'bg-white text-neutral-400 border-neutral-100 hover:border-black hover:text-black'}`}
-                                    >
-                                        {brand.name} {brand.name !== 'All' && <span className="opacity-50 ml-1">({brand.count})</span>}
-                                    </button>
-                                ))}
-                            </div>
+                        {/* 品牌標籤 */}
+                        <div className="flex gap-2 overflow-x-auto pb-6 hide-scrollbar">
+                            {brands.map((brand) => (
+                                <button key={brand.name} onClick={() => setSelectedBrand(brand.name)} className={`px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-full border-2 whitespace-nowrap transition-all ${selectedBrand === brand.name ? 'bg-black text-white border-black scale-105' : 'bg-white text-neutral-400 border-neutral-100'}`}>
+                                    {brand.name} {brand.name !== 'All' && `(${brand.count})`}
+                                </button>
+                            ))}
                         </div>
                         
-                        {currentItems.length === 0 ? (
-                            <div className="col-span-full py-20 text-center text-neutral-400 font-bold uppercase tracking-widest flex flex-col items-center">
-                                <div className="mb-4 opacity-20"><Icons.AlertCircle size={48} /></div>
-                                找不到符合條件的商品
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-4 gap-y-12">
-                                {currentItems.map((p, idx) => (
-                                    <div key={idx} className="group flex flex-col h-full bg-white rounded-xl p-3 border border-transparent hover:border-neutral-200 transition-all hover:shadow-xl">
-                                        <div className="aspect-[3/4] overflow-hidden bg-[#f4f4f4] rounded-lg mb-4 relative">
-                                            <img 
-                                                src={p.image || 'https://via.placeholder.com/400x533?text=IMAGE'} 
-                                                alt={p.name}
-                                                className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105" 
-                                                loading="lazy"
-                                                onError={(e) => { e.target.src = 'https://via.placeholder.com/400x533?text=NOT+FOUND' }}
-                                            />
-                                            {p.original_price > p.my_price && (
-                                                <div className="bg-gradient-to-tr from-red-500 to-red-700 absolute top-2 left-2 text-white text-[9px] font-black px-2 py-1 rounded-md italic uppercase tracking-tighter shadow-md">
-                                                    -{Math.round((1 - p.my_price/p.original_price)*100)}%
-                                                </div>
+                        {/* 商品網格 */}
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-4 gap-y-10">
+                            {currentItems.map((p, idx) => (
+                                <div key={idx} className="group flex flex-col h-full bg-white rounded-xl p-3 border border-transparent hover:border-neutral-200 transition-all hover:shadow-xl cursor-pointer" onClick={() => openProductDetail(p)}>
+                                    <div className="aspect-[3/4] overflow-hidden bg-[#f4f4f4] rounded-lg mb-4 relative">
+                                        <img src={p.image || 'https://via.placeholder.com/400x533'} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy" />
+                                        {p.calcOrigPrice > p.calcMyPrice && (
+                                            <div className="bg-red-600 absolute top-2 left-2 text-white text-[9px] font-black px-2 py-1 rounded shadow-md uppercase">SALE</div>
+                                        )}
+                                    </div>
+                                    <div className="flex-grow space-y-1.5 px-1">
+                                        <div className="text-[10px] font-black text-neutral-400 uppercase tracking-wider">{p.brand}</div>
+                                        <h3 className="font-bold text-[13px] leading-tight h-10 overflow-hidden line-clamp-2">{p.name}</h3>
+                                        
+                                        {/* 預覽部分尺碼 */}
+                                        <div className="flex flex-wrap gap-1 py-1">
+                                            {p.sizes && p.sizes.slice(0, 3).map((s, i) => (
+                                                <span key={i} className="text-[9px] border border-neutral-200 rounded px-1.5 py-0.5 font-bold text-neutral-600">{formatSize(s)}</span>
+                                            ))}
+                                            {p.sizes && p.sizes.length > 3 && <span className="text-[9px] text-neutral-400 self-center font-bold">+{p.sizes.length - 3}</span>}
+                                        </div>
+
+                                        <div className="pt-2 flex flex-col">
+                                            <span className="text-xl font-black italic">HK$ {p.calcMyPrice.toLocaleString()}</span>
+                                            {p.calcOrigPrice > p.calcMyPrice && (
+                                                <span className="text-[10px] text-neutral-400 line-through">HK$ {p.calcOrigPrice.toLocaleString()}</span>
                                             )}
                                         </div>
-                                        
-                                        <div className="flex-grow space-y-1.5 px-1">
-                                            <div className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.15em]">{p.brand || 'Premium'}</div>
-                                            <h3 className="font-bold text-[13px] leading-tight h-10 overflow-hidden line-clamp-2 text-neutral-800">{p.name}</h3>
-                                            
-                                            <div className="py-2">
-                                                <div className="flex flex-wrap gap-1">
-                                                    {(p.sizes && p.sizes.length > 0 && p.sizes[0] !== 'F') ? (
-                                                        <>
-                                                            {p.sizes.slice(0, 4).map((s, i) => (
-                                                                <span key={i} className="text-[9px] border border-neutral-200 rounded-md px-1.5 py-0.5 font-bold bg-white text-neutral-600">{s}</span>
-                                                            ))}
-                                                            {p.sizes.length > 4 && <span className="text-[9px] text-neutral-400 self-center ml-1 font-bold">+{p.sizes.length - 4}</span>}
-                                                        </>
-                                                    ) : (
-                                                        <span className="text-[9px] text-neutral-400 italic uppercase tracking-widest font-bold">Standard Size</span>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <div className="pt-2 flex flex-col">
-                                                <span className="text-xl font-black italic tracking-tight">HK$ {p.my_price}</span>
-                                                {p.original_price > p.my_price ? (
-                                                    <span className="text-[10px] text-neutral-300 line-through tracking-tighter">MSRP: HK$ {p.original_price}</span>
-                                                ) : (
-                                                    <span className="text-[10px] text-transparent">MSRP</span>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <button className="w-full mt-4 py-3 bg-neutral-100 text-black rounded-lg text-[10px] font-black uppercase tracking-[0.2em] hover:bg-black hover:text-white active:scale-95 transition-all">
-                                            查看詳情
-                                        </button>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-
-                        {totalPages > 0 && (
-                            <div className="mt-20 flex flex-col items-center gap-6 border-t border-neutral-100 pt-12">
-                                <div className="text-[10px] font-black text-neutral-300 uppercase tracking-[0.4em]">
-                                    第 {currentPage} 頁 / 共 {totalPages} 頁
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="w-10 h-10 flex items-center justify-center border border-neutral-200 rounded-full hover:bg-black hover:text-white transition-all disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-current">
-                                        <Icons.ChevronLeft />
-                                    </button>
-                                    
-                                    <div className="flex gap-2 font-mono text-sm flex-wrap justify-center">
-                                        {[...Array(totalPages)].map((_, i) => {
-                                            const p = i + 1;
-                                            if (p === 1 || p === totalPages || (p >= currentPage - 2 && p <= currentPage + 2)) {
-                                                return <button key={p} onClick={() => handlePageChange(p)} className={`w-8 h-8 rounded-full transition-colors ${currentPage === p ? 'bg-black text-white font-bold shadow-md' : 'text-neutral-400 hover:bg-neutral-100 hover:text-black'}`}>{p}</button>;
-                                            } else if (p === currentPage - 3 || p === currentPage + 3) {
-                                                return <span key={p} className="text-neutral-300 px-1 self-center">...</span>;
-                                            }
-                                            return null;
-                                        })}
-                                    </div>
-
-                                    <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="w-10 h-10 flex items-center justify-center border border-neutral-200 rounded-full hover:bg-black hover:text-white transition-all disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-current">
-                                        <Icons.ChevronRight />
+                                    <button className="w-full mt-4 py-2.5 bg-neutral-100 text-black rounded-lg text-[10px] font-black uppercase tracking-widest group-hover:bg-black group-hover:text-white transition-all">
+                                        查看詳情
                                     </button>
                                 </div>
-                            </div>
-                        )}
+                            ))}
+                        </div>
                     </main>
 
-                    <footer className="bg-black text-white mt-32 py-16 px-4">
-                        <div className="max-w-7xl mx-auto text-center space-y-4">
-                            <h3 className="text-2xl font-black italic tracking-tighter">EXCLSV_SELECT</h3>
-                            <p className="text-[9px] text-neutral-500 uppercase tracking-[0.4em] leading-relaxed">
-                                Directly Sourced from EU Boutiques<br/>No Returns on Clearance Items<br/>© 2024 ALL RIGHTS RESERVED
-                            </p>
+                    {/* ================= 彈出視窗區 (Modals) ================= */}
+
+                    {/* 1. 商品詳情 Modal */}
+                    {activeModal === 'detail' && selectedProduct && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay">
+                            <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col md:flex-row shadow-2xl fade-in relative">
+                                <button onClick={() => setActiveModal(null)} className="absolute top-4 right-4 z-10 p-2 bg-white rounded-full shadow-md hover:bg-neutral-100"><Icons.X /></button>
+                                
+                                <div className="w-full md:w-1/2 bg-[#f4f4f4]">
+                                    <img src={selectedProduct.image} alt={selectedProduct.name} className="w-full h-full object-cover" />
+                                </div>
+                                
+                                <div className="w-full md:w-1/2 p-8 flex flex-col">
+                                    <div className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-2">{selectedProduct.brand}</div>
+                                    <h2 className="text-2xl font-bold mb-4">{selectedProduct.name}</h2>
+                                    
+                                    <div className="flex items-end gap-3 mb-6">
+                                        <span className="text-3xl font-black italic text-red-600">HK$ {selectedProduct.calcMyPrice.toLocaleString()}</span>
+                                        {selectedProduct.calcOrigPrice > selectedProduct.calcMyPrice && (
+                                            <span className="text-sm text-neutral-400 line-through mb-1">HK$ {selectedProduct.calcOrigPrice.toLocaleString()}</span>
+                                        )}
+                                    </div>
+
+                                    <div className="mb-6">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <span className="text-sm font-bold uppercase">選擇尺碼 (US)</span>
+                                            <span className="text-xs text-neutral-400 underline cursor-pointer">尺碼指南</span>
+                                        </div>
+                                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                            {selectedProduct.sizes && selectedProduct.sizes.length > 0 ? (
+                                                selectedProduct.sizes.map((s, idx) => (
+                                                    <button 
+                                                        key={idx} 
+                                                        onClick={() => setSelectedSize(s)}
+                                                        className={`py-3 text-sm font-bold border rounded-lg transition-all ${selectedSize === s ? 'border-black bg-black text-white' : 'border-neutral-200 hover:border-black'}`}
+                                                    >
+                                                        {formatSize(s)}
+                                                    </button>
+                                                ))
+                                            ) : (
+                                                <div className="col-span-full py-3 text-sm text-center border rounded-lg bg-neutral-50">標準單一尺碼 (OS)</div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <button onClick={addToCart} className="w-full mt-auto py-4 bg-black text-white font-black uppercase tracking-widest rounded-xl hover:bg-neutral-800 transition-colors shadow-lg active:scale-95">
+                                        加入購物車
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                    </footer>
+                    )}
+
+                    {/* 2. 購物車 Modal (右側滑出) */}
+                    {activeModal === 'cart' && (
+                        <div className="fixed inset-0 z-50 flex justify-end modal-overlay">
+                            <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col slide-in-right relative">
+                                <div className="p-6 border-b flex justify-between items-center bg-white">
+                                    <h2 className="text-xl font-black italic">SHOPPING CART ({cart.length})</h2>
+                                    <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-neutral-100 rounded-full"><Icons.X /></button>
+                                </div>
+                                
+                                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                                    {cart.length === 0 ? (
+                                        <div className="text-center text-neutral-400 py-20 font-bold uppercase tracking-widest">購物車是空的</div>
+                                    ) : (
+                                        cart.map(item => (
+                                            <div key={item.cartId} className="flex gap-4 items-center">
+                                                <div className="w-20 h-24 bg-neutral-100 rounded-lg overflow-hidden flex-shrink-0">
+                                                    <img src={item.image} className="w-full h-full object-cover" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="text-[10px] text-neutral-500 font-black">{item.brand}</div>
+                                                    <div className="text-sm font-bold line-clamp-1">{item.name}</div>
+                                                    <div className="text-xs text-neutral-500 mt-1">Size: <span className="font-bold text-black">{formatSize(item.selectedSize)}</span></div>
+                                                    <div className="font-black mt-2">HK$ {item.price.toLocaleString()}</div>
+                                                </div>
+                                                <button onClick={() => removeFromCart(item.cartId)} className="p-2 text-neutral-400 hover:text-red-600"><Icons.Trash /></button>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+
+                                <div className="p-6 border-t bg-neutral-50">
+                                    <div className="flex justify-between font-black text-xl mb-6">
+                                        <span>總計</span>
+                                        <span>HK$ {cartTotal.toLocaleString()}</span>
+                                    </div>
+                                    <button onClick={handleCheckoutClick} disabled={cart.length === 0} className="w-full py-4 bg-black text-white font-black uppercase tracking-widest rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-800 transition-colors shadow-lg">
+                                        前往結帳
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 3. 登入 / 遊客選擇 Modal */}
+                    {activeModal === 'auth' && (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 modal-overlay">
+                            <div className="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl fade-in relative">
+                                <button onClick={() => setActiveModal('cart')} className="absolute top-4 right-4 p-2 hover:bg-neutral-100 rounded-full"><Icons.X /></button>
+                                <h2 className="text-2xl font-black uppercase italic mb-6 text-center">會員登入</h2>
+                                
+                                <form onSubmit={handleLogin} className="space-y-4 mb-8">
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase mb-1">Email</label>
+                                        <input type="email" required className="w-full border rounded-lg px-4 py-3 bg-neutral-50 focus:border-black outline-none" placeholder="example@email.com" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase mb-1">密碼</label>
+                                        <input type="password" required className="w-full border rounded-lg px-4 py-3 bg-neutral-50 focus:border-black outline-none" placeholder="••••••••" />
+                                    </div>
+                                    <button type="submit" className="w-full py-3.5 bg-black text-white font-black rounded-lg mt-2 hover:bg-neutral-800 transition-colors">登入並結帳</button>
+                                </form>
+
+                                <div className="relative flex items-center justify-center mb-8">
+                                    <div className="border-t w-full absolute"></div>
+                                    <span className="bg-white px-4 text-xs font-bold text-neutral-400 relative z-10 uppercase">或者</span>
+                                </div>
+
+                                <button onClick={handleGuestCheckout} className="w-full py-3.5 border-2 border-black text-black font-black rounded-lg hover:bg-neutral-50 transition-colors">
+                                    以遊客身分繼續結帳
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 4. 結帳付款 Modal */}
+                    {activeModal === 'checkout' && (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 modal-overlay">
+                            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-8 shadow-2xl fade-in relative">
+                                <button onClick={() => setActiveModal('cart')} className="absolute top-4 right-4 p-2 hover:bg-neutral-100 rounded-full"><Icons.X /></button>
+                                
+                                <h2 className="text-2xl font-black uppercase italic mb-6">安全結帳 (Secure Checkout)</h2>
+                                
+                                <div className="bg-neutral-100 p-4 rounded-xl mb-6 flex justify-between items-center">
+                                    <span className="font-bold">訂單總額 (包含 {cart.length} 件商品)</span>
+                                    <span className="text-xl font-black text-red-600">HK$ {cartTotal.toLocaleString()}</span>
+                                </div>
+
+                                <form onSubmit={handlePayment} className="space-y-6">
+                                    <div>
+                                        <h3 className="font-bold text-lg mb-3">1. 運送資訊</h3>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <input type="text" required placeholder="名字" className="border rounded-lg px-4 py-3 focus:border-black outline-none" />
+                                            <input type="text" required placeholder="姓氏" className="border rounded-lg px-4 py-3 focus:border-black outline-none" />
+                                            <input type="text" required placeholder="聯絡電話" className="col-span-2 border rounded-lg px-4 py-3 focus:border-black outline-none" />
+                                            <input type="text" required placeholder="詳細地址 (香港/澳門/台灣...)" className="col-span-2 border rounded-lg px-4 py-3 focus:border-black outline-none" />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h3 className="font-bold text-lg mb-3">2. 信用卡付款</h3>
+                                        <div className="space-y-4 bg-white border border-neutral-200 p-4 rounded-xl shadow-sm">
+                                            <input type="text" required placeholder="信用卡卡號 (0000 0000 0000 0000)" maxLength="19" className="w-full border rounded-lg px-4 py-3 focus:border-black outline-none bg-neutral-50" />
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <input type="text" required placeholder="有效期限 (MM/YY)" maxLength="5" className="border rounded-lg px-4 py-3 focus:border-black outline-none bg-neutral-50" />
+                                                <input type="text" required placeholder="安全碼 (CVC)" maxLength="4" className="border rounded-lg px-4 py-3 focus:border-black outline-none bg-neutral-50" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" className="w-full py-4 bg-green-600 text-white font-black text-lg rounded-xl mt-4 hover:bg-green-700 transition-colors shadow-lg flex justify-center items-center gap-2">
+                                        確認支付 HK$ {cartTotal.toLocaleString()}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 5. 支付成功 Modal */}
+                    {activeModal === 'success' && (
+                        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 modal-overlay">
+                            <div className="bg-white rounded-2xl w-full max-w-sm p-8 shadow-2xl fade-in text-center flex flex-col items-center">
+                                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
+                                    <Icons.Check />
+                                </div>
+                                <h2 className="text-2xl font-black mb-2">付款成功！</h2>
+                                <p className="text-neutral-500 text-sm mb-8">感謝您的購買，您的訂單正在處理中。追蹤號碼將稍後發送至您的 Email。</p>
+                                <button onClick={() => setActiveModal(null)} className="w-full py-3 bg-black text-white font-black rounded-lg hover:bg-neutral-800">
+                                    返回首頁繼續購物
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                 </div>
             );
         }
 
-        // 啟動 React
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>

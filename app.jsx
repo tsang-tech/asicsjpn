@@ -3,31 +3,34 @@ import { Search, ChevronDown, ChevronLeft, ChevronRight, ShoppingBag, AlertCircl
 
 const ITEMS_PER_PAGE = 50;
 
-// 預覽環境的備用測試資料
+// 預覽環境的備用測試資料 (已對應最新 Python 爬蟲的 JSON 欄位格式)
 const MOCK_DATA = [
   {
     "brand": "JORDAN",
-    "product_name": "Retro High OG 'Royal Reimagined'",
-    "original_market_price": 1599,
-    "your_selling_price": 1159,
-    "image_url": "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=400&h=533&fit=crop",
-    "sizes": ["US 8", "US 9", "US 10"]
+    "name": "Retro High OG 'Royal Reimagined'",
+    "original_price": 1599,
+    "my_price": 1159,
+    "image": "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=400&h=533&fit=crop",
+    "sizes": ["US 8", "US 9", "US 10"],
+    "status": "AVAILABLE"
   },
   {
     "brand": "STUSSY",
-    "product_name": "Basic Stussy Logo Tee",
-    "original_market_price": 450,
-    "your_selling_price": 320,
-    "image_url": "https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=400&h=533&fit=crop",
-    "sizes": ["S", "M", "L", "XL"]
+    "name": "Basic Stussy Logo Tee",
+    "original_price": 450,
+    "my_price": 320,
+    "image": "https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=400&h=533&fit=crop",
+    "sizes": ["S", "M", "L", "XL"],
+    "status": "AVAILABLE"
   },
   {
     "brand": "NIKE",
-    "product_name": "Air Force 1 '07 Premium",
-    "original_market_price": 899,
-    "your_selling_price": 699,
-    "image_url": "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400&h=533&fit=crop",
-    "sizes": ["US 7", "US 8", "US 8.5"]
+    "name": "Air Force 1 '07 Premium",
+    "original_price": 899,
+    "my_price": 699,
+    "image": "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400&h=533&fit=crop",
+    "sizes": ["US 7", "US 8", "US 8.5"],
+    "status": "AVAILABLE"
   }
 ];
 
@@ -46,22 +49,19 @@ export default function App() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1. 改用相對路徑，避免 GitHub Pages 等環境抓錯路徑
         const response = await fetch('./products.json');
         if (!response.ok) throw new Error('File not found');
         const data = await response.json();
         
-        // 2. 如果爬蟲失敗導致 JSON 是空陣列，主動拋出錯誤以觸發測試資料
         if (!Array.isArray(data) || data.length === 0) {
           throw new Error('JSON 為空陣列，爬蟲可能失效未抓取到商品');
         }
 
-        // 3. 放寬過濾條件，只要有價格就先顯示，方便除錯查看爬蟲抓到什麼
+        // 對應爬蟲新欄位：my_price 與 original_price
         const validData = data.filter(p => 
-          p.your_selling_price > 0 || p.original_market_price > 0
+          p.my_price > 0 || p.original_price > 0
         );
         
-        // 如果過濾後沒東西，但原始 data 有東西，就強迫顯示原始 data
         setProducts(validData.length > 0 ? validData : data);
       } catch (err) {
         console.warn('載入真實資料失敗或資料為空，啟用測試資料。', err);
@@ -85,7 +85,7 @@ export default function App() {
 
     const sortedBrands = Object.keys(counts)
       .sort((a, b) => counts[b] - counts[a])
-      .slice(0, 30); // 取前 30 大品牌
+      .slice(0, 30);
 
     return [{ name: 'All', count: products.length }, ...sortedBrands.map(b => ({ name: b, count: counts[b] }))];
   }, [products]);
@@ -99,20 +99,20 @@ export default function App() {
       result = result.filter(p => p.brand === selectedBrand);
     }
 
-    // 2. 關鍵字搜尋
+    // 2. 關鍵字搜尋 (改用 p.name)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(p => 
-        (p.product_name && p.product_name.toLowerCase().includes(q)) || 
+        (p.name && p.name.toLowerCase().includes(q)) || 
         (p.brand && p.brand.toLowerCase().includes(q))
       );
     }
 
-    // 3. 排序
+    // 3. 排序 (改用 p.my_price)
     if (sortOption === 'price-asc') {
-      result.sort((a, b) => a.your_selling_price - b.your_selling_price);
+      result.sort((a, b) => a.my_price - b.my_price);
     } else if (sortOption === 'price-desc') {
-      result.sort((a, b) => b.your_selling_price - a.your_selling_price);
+      result.sort((a, b) => b.my_price - a.my_price);
     }
 
     return result;
@@ -254,16 +254,16 @@ export default function App() {
               <div key={idx} className="group flex flex-col h-full bg-white rounded-xl p-3 border border-transparent hover:border-neutral-200 transition-all hover:shadow-xl">
                 <div className="aspect-[3/4] overflow-hidden bg-[#f4f4f4] rounded-lg mb-4 relative">
                   <img 
-                    src={p.image_url || 'https://via.placeholder.com/400x533?text=IMAGE'} 
-                    alt={p.product_name}
+                    src={p.image || 'https://via.placeholder.com/400x533?text=IMAGE'} 
+                    alt={p.name}
                     className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105" 
                     loading="lazy"
                     onError={(e) => { e.target.src = 'https://via.placeholder.com/400x533?text=NOT+FOUND' }}
                   />
                   
-                  {p.original_market_price > p.your_selling_price && (
+                  {p.original_price > p.my_price && (
                     <div className="bg-gradient-to-tr from-red-500 to-red-700 absolute top-2 left-2 text-white text-[9px] font-black px-2 py-1 rounded-md italic uppercase tracking-tighter shadow-md">
-                      -{Math.round((1 - p.your_selling_price/p.original_market_price)*100)}%
+                      -{Math.round((1 - p.my_price/p.original_price)*100)}%
                     </div>
                   )}
                 </div>
@@ -271,7 +271,7 @@ export default function App() {
                 <div className="flex-grow space-y-1.5 px-1">
                   <div className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.15em]">{p.brand || 'Premium'}</div>
                   <h3 className="font-bold text-[13px] leading-tight h-10 overflow-hidden line-clamp-2 text-neutral-800">
-                    {p.product_name}
+                    {p.name}
                   </h3>
                   
                   <div className="py-2">
@@ -296,9 +296,9 @@ export default function App() {
                   </div>
 
                   <div className="pt-2 flex flex-col">
-                    <span className="text-xl font-black italic tracking-tight">HK$ {p.your_selling_price}</span>
-                    {p.original_market_price > p.your_selling_price ? (
-                      <span className="text-[10px] text-neutral-300 line-through tracking-tighter">MSRP: HK$ {p.original_market_price}</span>
+                    <span className="text-xl font-black italic tracking-tight">HK$ {p.my_price}</span>
+                    {p.original_price > p.my_price ? (
+                      <span className="text-[10px] text-neutral-300 line-through tracking-tighter">MSRP: HK$ {p.original_price}</span>
                     ) : (
                       <span className="text-[10px] text-transparent">MSRP</span>
                     )}

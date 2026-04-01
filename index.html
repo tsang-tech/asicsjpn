@@ -30,14 +30,14 @@
         // 🌟 核心設定區 🌟
         // ==========================================
         const WHATSAPP_NUMBER = "85251264018";
-        const ADMIN_EMAIL = "tschho@gmail.com";
+        const MESSENGER_ID = "ASICS.JPN"; // Meta Messenger 帳號 ID
         
         // 已更新為測試成功的 /exec 網址！
         const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbwFjqR5gcH2aBn6AFzOKrCffo3hGcQg19N5ALW0oCKeUJLQTPltj7HWPIOdv_ZhvxMV/exec"; 
 
         const CURRENCY_RATE = 1; 
         const PRICE_MARKUP = 1;
-        const ITEMS_PER_PAGE = 50;
+        const ITEMS_PER_PAGE = 100;
 
         const calculatePrice = (price) => {
             if (!price || price <= 0) return 0;
@@ -72,7 +72,8 @@
             const [activeModal, setActiveModal] = useState(null); 
             const [selectedProduct, setSelectedProduct] = useState(null); 
             const [selectedSize, setSelectedSize] = useState(''); 
-            const [orderLinks, setOrderLinks] = useState({ waUrl: '', mailUrl: '' }); 
+            const [orderLinks, setOrderLinks] = useState({ waUrl: '', messengerUrl: '' }); 
+            const [orderMessage, setOrderMessage] = useState(''); // 儲存訂單內容以便複製
 
             // 表單資訊
             const [formData, setFormData] = useState({
@@ -158,11 +159,12 @@
                     }).catch(error => console.error('Google Sheets 記錄發生錯誤:', error));
                 }
 
-                // 準備 WhatsApp 和 Email 連結
+                // 準備 WhatsApp 和 Messenger 連結
                 const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-                const mailUrl = `mailto:${ADMIN_EMAIL}?subject=${encodeURIComponent(`[訂單 #${orderId}] ${formData.lastName} 的新訂單`)}&body=${encodeURIComponent(message)}`;
+                const messengerUrl = `https://m.me/${MESSENGER_ID}`;
 
-                setOrderLinks({ waUrl, mailUrl });
+                setOrderMessage(message); // 儲存訊息以供點擊時複製
+                setOrderLinks({ waUrl, messengerUrl });
                 setActiveModal('success');
                 setCart([]); 
 
@@ -197,169 +199,34 @@
                                 <input type="text" placeholder="搜尋品牌或單品..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2.5 text-sm font-bold border rounded-lg bg-[#f9f9f9]" />
                                 <div className="absolute left-3.5 top-3 text-neutral-400"><Icons.Search /></div>
                             </div>
-                            <select value={sortOption} onChange={(e) => setSortOption(e.target.value)} className="text-sm font-bold border rounded-lg px-4 py-2.5 bg-[#f9f9f9]">
-                                <option value="default">排序: 推薦</option>
-                                <option value="price-asc">價格: 低到高</option>
-                                <option value="price-desc">價格: 高到低</option>
-                            </select>
+                            <div className="flex gap-2 w-full md:w-auto">
+                                <select value={selectedBrand} onChange={(e) => setSelectedBrand(e.target.value)} className="flex-1 md:flex-none text-sm font-bold border rounded-lg px-4 py-2.5 bg-[#f9f9f9] cursor-pointer">
+                                    {brands.map((brand) => (
+                                        <option key={brand.name} value={brand.name}>
+                                            {brand.name === 'All' ? '所有品牌' : brand.name} {brand.name !== 'All' && `(${brand.count})`}
+                                        </option>
+                                    ))}
+                                </select>
+                                <select value={sortOption} onChange={(e) => setSortOption(e.target.value)} className="flex-1 md:flex-none text-sm font-bold border rounded-lg px-4 py-2.5 bg-[#f9f9f9] cursor-pointer">
+                                    <option value="default">排序: 推薦</option>
+                                    <option value="price-asc">價格: 低到高</option>
+                                    <option value="price-desc">價格: 高到低</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div className="flex gap-2 overflow-x-auto pb-6 hide-scrollbar">
-                            {brands.map((brand) => (
-                                <button key={brand.name} onClick={() => setSelectedBrand(brand.name)} className={`px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-full border-2 whitespace-nowrap transition-all ${selectedBrand === brand.name ? 'bg-black text-white border-black scale-105 shadow-md' : 'bg-white text-neutral-400 border-neutral-100 hover:border-black'}`}>
-                                    {brand.name} {brand.name !== 'All' && `(${brand.count})`}
-                                </button>
-                            ))}
-                        </div>
-                        
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-10">
-                            {currentItems.map((p, idx) => (
-                                <div key={idx} className="group flex flex-col h-full bg-white rounded-xl p-3 border border-transparent hover:border-neutral-200 transition-all hover:shadow-xl cursor-pointer" onClick={() => { setSelectedProduct(p); setSelectedSize(''); setActiveModal('detail'); }}>
-                                    <div className="aspect-[3/4] overflow-hidden bg-[#f4f4f4] rounded-lg mb-4 relative">
-                                        <img src={p.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                                        {p.calcOrigPrice > p.calcMyPrice && <div className="bg-red-600 absolute top-2 left-2 text-white text-[9px] font-black px-2 py-1 rounded shadow-md">SALE</div>}
-                                    </div>
-                                    <div className="flex-grow space-y-1.5 px-1">
-                                        <div className="text-[10px] font-black text-neutral-400 uppercase">{p.brand}</div>
-                                        <h3 className="font-bold text-[13px] leading-tight h-10 overflow-hidden line-clamp-2">{p.name}</h3>
-                                        <div className="pt-2 flex flex-col">
-                                            <span className="text-xl font-black italic">HK$ {p.calcMyPrice.toLocaleString()}</span>
-                                            {p.calcOrigPrice > p.calcMyPrice && <span className="text-[10px] text-neutral-400 line-through">HK$ {p.calcOrigPrice.toLocaleString()}</span>}
-                                        </div>
-                                    </div>
-                                    <button className="w-full mt-4 py-2.5 bg-neutral-100 text-[10px] font-black uppercase rounded-lg group-hover:bg-black group-hover:text-white transition-all">查看詳情</button>
-                                </div>
-                            ))}
-                        </div>
-                    </main>
-
-                    {/* 商品詳情 Modal */}
-                    {activeModal === 'detail' && selectedProduct && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay">
-                            <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col md:flex-row shadow-2xl fade-in relative">
-                                <button onClick={() => setActiveModal(null)} className="absolute top-4 right-4 z-10 p-2 bg-white rounded-full shadow-md hover:bg-neutral-100"><Icons.X /></button>
-                                <div className="w-full md:w-1/2 bg-[#f4f4f4]"><img src={selectedProduct.image} className="w-full h-full object-cover" /></div>
-                                <div className="w-full md:w-1/2 p-8 flex flex-col">
-                                    <div className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-2">{selectedProduct.brand}</div>
-                                    <h2 className="text-2xl font-bold mb-4">{selectedProduct.name}</h2>
-                                    <div className="flex items-end gap-3 mb-6">
-                                        <span className="text-3xl font-black italic text-red-600">HK$ {selectedProduct.calcMyPrice.toLocaleString()}</span>
-                                    </div>
-                                    <div className="mb-6">
-                                        <span className="text-sm font-bold uppercase block mb-3">選擇尺碼 (US)</span>
-                                        <div className="grid grid-cols-4 gap-2">
-                                            {selectedProduct.sizes?.map((s, idx) => (
-                                                <button key={idx} onClick={() => setSelectedSize(s)} className={`py-3 text-sm font-bold border rounded-lg ${selectedSize === s ? 'bg-black text-white' : 'border-neutral-200'}`}>{formatSize(s)}</button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <button onClick={() => { if(!selectedSize) return alert('請選擇尺碼'); setCart([...cart, {...selectedProduct, cartId: Math.random(), selectedSize, price: selectedProduct.calcMyPrice}]); setActiveModal('cart'); }} className="w-full py-4 bg-black text-white font-black uppercase rounded-xl shadow-lg">加入購物車</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* 購物車 Modal */}
-                    {activeModal === 'cart' && (
-                        <div className="fixed inset-0 z-50 flex justify-end modal-overlay">
-                            <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col slide-in-right relative">
-                                <div className="p-6 border-b flex justify-between items-center"><h2 className="text-xl font-black italic">CART ({cart.length})</h2><button onClick={() => setActiveModal(null)}><Icons.X /></button></div>
-                                <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                                    {cart.map(item => (
-                                        <div key={item.cartId} className="flex gap-4 items-center">
-                                            <img src={item.image} className="w-16 h-20 object-cover rounded-lg" />
-                                            <div className="flex-1">
-                                                <div className="text-[10px] font-black text-neutral-400 uppercase">{item.brand}</div>
-                                                <div className="text-sm font-bold">{item.name}</div>
-                                                <div className="text-xs font-bold">Size: {formatSize(item.selectedSize)}</div>
-                                                <div className="font-black">HK$ {item.price.toLocaleString()}</div>
-                                            </div>
-                                            <button onClick={() => setCart(cart.filter(i => i.cartId !== item.cartId))}><Icons.Trash /></button>
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="p-6 border-t bg-neutral-50">
-                                    <div className="flex justify-between font-black text-xl mb-6"><span>總計</span><span>HK$ {cartTotal.toLocaleString()}</span></div>
-                                    <button onClick={() => !user ? setActiveModal('auth') : setActiveModal('checkout')} className="w-full py-4 bg-black text-white font-black uppercase rounded-xl">前往結帳</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* 登入 Modal */}
-                    {activeModal === 'auth' && (
-                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 modal-overlay">
-                            <div className="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl fade-in relative">
-                                <button onClick={() => setActiveModal('cart')} className="absolute top-4 right-4"><Icons.X /></button>
-                                <h2 className="text-2xl font-black uppercase italic mb-6 text-center">結帳方式</h2>
-                                <button onClick={() => { setUser({name: '遊客'}); setActiveModal('checkout'); }} className="w-full py-3.5 border-2 border-black font-black rounded-lg">以遊客身分繼續結帳</button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* 結帳與付款 Modal */}
-                    {activeModal === 'checkout' && (
-                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 modal-overlay">
-                            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-8 shadow-2xl fade-in relative text-sm">
-                                <button onClick={() => setActiveModal('cart')} className="absolute top-4 right-4"><Icons.X /></button>
-                                <h2 className="text-2xl font-black italic mb-6">SECURE CHECKOUT</h2>
-                                <form onSubmit={handlePayment} className="space-y-6">
-                                    <div>
-                                        <h3 className="font-bold text-lg mb-3">1. 運送資訊</h3>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <input type="text" required placeholder="姓氏" onChange={e => setFormData({...formData, lastName: e.target.value})} className="border rounded-lg px-4 py-3 outline-none" />
-                                            <input type="text" required placeholder="名字" onChange={e => setFormData({...formData, firstName: e.target.value})} className="border rounded-lg px-4 py-3 outline-none" />
-                                            <input type="text" required placeholder="聯絡電話" onChange={e => setFormData({...formData, phone: e.target.value})} className="col-span-2 border rounded-lg px-4 py-3 outline-none" />
-                                            <textarea required placeholder="詳細地址 (住宅 / 順豐站 / 智能櫃)" onChange={e => setFormData({...formData, address: e.target.value})} className="col-span-2 border rounded-lg px-4 py-3 outline-none h-20"></textarea>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-lg mb-3">2. 選擇付款方式</h3>
-                                        <div className="grid grid-cols-2 gap-2 mb-4">
-                                            {['fps', 'payme', 'alipay', 'wechat'].map(m => (
-                                                <button type="button" key={m} onClick={() => setPaymentMethod(m)} className={`py-3 border-2 font-bold rounded-xl ${paymentMethod === m ? 'border-black bg-neutral-50' : 'border-neutral-200'}`}>{m === 'fps' ? 'FPS 轉數快' : m.toUpperCase()}</button>
-                                            ))}
-                                        </div>
+{/* ... existing code ... */}
                                         <div className="bg-neutral-50 border p-6 rounded-xl flex flex-col items-center justify-center text-center">
                                             {paymentMethod === 'fps' && (
                                                 <div className="space-y-2">
-                                                    <p className="text-lg font-bold">請轉帳至以下轉數快 (FPS) ID：</p>
-                                                    <p className="text-3xl font-black text-emerald-600 tracking-widest">127569788</p>
+                                                    <p className="text-lg font-bold">請轉帳至以下轉數快 (FPS)：</p>
+                                                    <p className="text-3xl font-black text-emerald-600 tracking-widest">ID: 127569788</p>
+                                                    <p className="text-xl font-black text-emerald-600 tracking-widest">電話: 51264018</p>
                                                 </div>
                                             )}
                                             {paymentMethod === 'payme' && (
-                                                <div className="space-y-3 flex flex-col items-center">
-                                                    <p className="text-lg font-bold text-[#E60028]">請掃描 PayMe QR Code 付款：</p>
-                                                    <img src="./payme.jpeg" alt="PayMe QR Code" className="w-48 h-48 object-contain rounded-lg shadow-sm border border-neutral-200 bg-white p-2" />
-                                                </div>
-                                            )}
-                                            {paymentMethod === 'alipay' && (
-                                                <div className="space-y-3 flex flex-col items-center">
-                                                    <p className="text-lg font-bold text-[#00A8E1]">請掃描 AlipayHK QR Code 付款：</p>
-                                                    <img src="./alipay.jpeg" alt="AlipayHK QR Code" className="w-48 h-48 object-contain rounded-lg shadow-sm border border-neutral-200 bg-white p-2" />
-                                                </div>
-                                            )}
-                                            {paymentMethod === 'wechat' && (
-                                                <div className="space-y-3 flex flex-col items-center">
-                                                    <p className="text-lg font-bold text-[#09B83E]">請掃描 WeChat Pay QR Code 付款：</p>
-                                                    <img src="./wechat.jpeg" alt="WeChat Pay QR Code" className="w-48 h-48 object-contain rounded-lg shadow-sm border border-neutral-200 bg-white p-2" />
-                                                </div>
-                                            )}
-                                            <p className="text-xs text-neutral-600 mt-5 font-bold bg-yellow-100 px-4 py-2 rounded-full">⚠️ 完成轉帳或截圖保存後，請點擊下方按鈕提交訂單。</p>
-                                        </div>
-                                    </div>
-                                    <button type="submit" className="w-full py-4 bg-black text-white font-black text-lg rounded-xl shadow-lg">我已付款，提交訂單通知</button>
-                                </form>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* 成功頁面與手動發送選項 */}
-                    {activeModal === 'success' && (
-                        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 modal-overlay">
-                            <div className="bg-white rounded-2xl w-full max-w-sm p-8 shadow-2xl text-center fade-in">
-                                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6 mx-auto"><Icons.Check /></div>
-                                <h2 className="text-2xl font-black mb-2">訂單已生成！</h2>
+{/* ... existing code ... */}
                                 <p className="text-neutral-500 text-sm mb-6">系統正在為您跳轉至 WhatsApp 發送詳情...</p>
                                 
                                 {/* 保底按鈕區塊 */}
@@ -367,21 +234,19 @@
                                     <a href={orderLinks.waUrl} target="_blank" rel="noopener noreferrer" className="block w-full py-3.5 bg-[#25D366] text-white font-black rounded-xl shadow-md hover:opacity-90 transition-opacity">
                                         🟢 確認發送 WhatsApp
                                     </a>
-                                    <a href={orderLinks.mailUrl} className="block w-full py-3.5 bg-neutral-800 text-white font-black rounded-xl shadow-md hover:opacity-90 transition-opacity">
-                                        ✉️ 透過 Email 發送備份
+                                    <a href={orderLinks.messengerUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => {
+                                        // 自動複製訂單文字的小工具
+                                        const textArea = document.createElement("textarea");
+                                        textArea.value = orderMessage;
+                                        document.body.appendChild(textArea);
+                                        textArea.select();
+                                        document.execCommand('copy');
+                                        document.body.removeChild(textArea);
+                                        alert("✅ 訂單內容已複製！\n跳轉至 Messenger 後，請直接「貼上」發送給我們。");
+                                    }} className="block w-full py-3.5 bg-[#0084FF] text-white font-black rounded-xl shadow-md hover:opacity-90 transition-opacity">
+                                        💬 透過 Messenger 發送 (點擊自動複製訂單)
                                     </a>
                                 </div>
 
                                 <button onClick={() => setActiveModal(null)} className="text-sm font-bold text-neutral-400 hover:text-black underline">返回首頁繼續選購</button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        }
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+{/* ... existing code ... */}

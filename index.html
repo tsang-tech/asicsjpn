@@ -32,12 +32,12 @@
         const WHATSAPP_NUMBER = "85251264018";
         const ADMIN_EMAIL = "tschho@gmail.com";
         
-        // 已更新為正確的 /exec 網址！
+        // 已更新為測試成功的 /exec 網址！
         const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbwFjqR5gcH2aBn6AFzOKrCffo3hGcQg19N5ALW0oCKeUJLQTPltj7HWPIOdv_ZhvxMV/exec"; 
 
         const CURRENCY_RATE = 1; 
         const PRICE_MARKUP = 1;
-        const ITEMS_PER_PAGE = 100;
+        const ITEMS_PER_PAGE = 50;
 
         const calculatePrice = (price) => {
             if (!price || price <= 0) return 0;
@@ -317,13 +317,35 @@
                                         <h3 className="font-bold text-lg mb-3">2. 選擇付款方式</h3>
                                         <div className="grid grid-cols-2 gap-2 mb-4">
                                             {['fps', 'payme', 'alipay', 'wechat'].map(m => (
-                                                <button type="button" key={m} onClick={() => setPaymentMethod(m)} className={`py-3 border-2 font-bold rounded-xl ${paymentMethod === m ? 'border-black bg-neutral-50' : 'border-neutral-200'}`}>{m.toUpperCase()}</button>
+                                                <button type="button" key={m} onClick={() => setPaymentMethod(m)} className={`py-3 border-2 font-bold rounded-xl ${paymentMethod === m ? 'border-black bg-neutral-50' : 'border-neutral-200'}`}>{m === 'fps' ? 'FPS 轉數快' : m.toUpperCase()}</button>
                                             ))}
                                         </div>
-                                        <div className="bg-neutral-50 border p-6 rounded-xl text-center">
-                                            {paymentMethod === 'fps' && <p className="text-2xl font-black text-emerald-600">FPS ID: 1234567</p>}
-                                            {paymentMethod === 'payme' && <p className="text-2xl font-black text-red-500">PayMe: +852 51264018</p>}
-                                            <p className="text-[10px] text-neutral-400 mt-2 font-bold">⚠️ 完成轉帳後，點擊下方按鈕將生成您的訂單。</p>
+                                        <div className="bg-neutral-50 border p-6 rounded-xl flex flex-col items-center justify-center text-center">
+                                            {paymentMethod === 'fps' && (
+                                                <div className="space-y-2">
+                                                    <p className="text-lg font-bold">請轉帳至以下轉數快 (FPS) ID：</p>
+                                                    <p className="text-3xl font-black text-emerald-600 tracking-widest">127569788</p>
+                                                </div>
+                                            )}
+                                            {paymentMethod === 'payme' && (
+                                                <div className="space-y-3 flex flex-col items-center">
+                                                    <p className="text-lg font-bold text-[#E60028]">請掃描 PayMe QR Code 付款：</p>
+                                                    <img src="./payme.jpeg" alt="PayMe QR Code" className="w-48 h-48 object-contain rounded-lg shadow-sm border border-neutral-200 bg-white p-2" />
+                                                </div>
+                                            )}
+                                            {paymentMethod === 'alipay' && (
+                                                <div className="space-y-3 flex flex-col items-center">
+                                                    <p className="text-lg font-bold text-[#00A8E1]">請掃描 AlipayHK QR Code 付款：</p>
+                                                    <img src="./alipay.jpeg" alt="AlipayHK QR Code" className="w-48 h-48 object-contain rounded-lg shadow-sm border border-neutral-200 bg-white p-2" />
+                                                </div>
+                                            )}
+                                            {paymentMethod === 'wechat' && (
+                                                <div className="space-y-3 flex flex-col items-center">
+                                                    <p className="text-lg font-bold text-[#09B83E]">請掃描 WeChat Pay QR Code 付款：</p>
+                                                    <img src="./wechat.jpeg" alt="WeChat Pay QR Code" className="w-48 h-48 object-contain rounded-lg shadow-sm border border-neutral-200 bg-white p-2" />
+                                                </div>
+                                            )}
+                                            <p className="text-xs text-neutral-600 mt-5 font-bold bg-yellow-100 px-4 py-2 rounded-full">⚠️ 完成轉帳或截圖保存後，請點擊下方按鈕提交訂單。</p>
                                         </div>
                                     </div>
                                     <button type="submit" className="w-full py-4 bg-black text-white font-black text-lg rounded-xl shadow-lg">我已付款，提交訂單通知</button>

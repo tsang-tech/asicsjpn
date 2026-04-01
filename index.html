@@ -1,26 +1,26 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EXCLSV_SELECT - 試算表自動記錄版</title>
-
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <title>EXCLSV_SELECT - 歐洲精品代購</title>
+    <!-- 引入 React 和 ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- 引入 Babel 以編譯 JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
     <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #FAFAFA; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .modal-overlay { background-color: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); }
-        .slide-in-right { animation: slideInRight 0.3s ease-out forwards; }
-        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
-        .fade-in { animation: fadeIn 0.2s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; scale: 0.95; } to { opacity: 1; scale: 1; } }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="bg-[#f9f9f9]">
+<body>
     <div id="root"></div>
 
     <script type="text/babel">
@@ -30,184 +30,280 @@
         // 🌟 核心設定區 🌟
         // ==========================================
         const WHATSAPP_NUMBER = "85251264018";
-        const MESSENGER_ID = "ASICS.JPN"; // Meta Messenger 帳號 ID
+        const MESSENGER_ID = "ASICS.JPN"; 
         
-        // 已更新為測試成功的 /exec 網址！
+        // Google Sheets API 網址
         const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbwFjqR5gcH2aBn6AFzOKrCffo3hGcQg19N5ALW0oCKeUJLQTPltj7HWPIOdv_ZhvxMV/exec"; 
 
         const CURRENCY_RATE = 1; 
         const PRICE_MARKUP = 1;
         const ITEMS_PER_PAGE = 100;
 
-        const calculatePrice = (price) => {
-            if (!price || price <= 0) return 0;
-            return Math.round(price * CURRENCY_RATE) + PRICE_MARKUP;
-        };
-
-        const formatSize = (size) => {
-            if (!size) return '';
-            return /^\d/.test(size) ? `US ${size}` : size;
-        };
-
-        // --- SVG 圖示庫 ---
+        // SVG 圖示元件
         const Icons = {
-            Search: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
-            ShoppingBag: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>,
-            User: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>,
-            X: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
-            Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
-            Check: () => <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            Search: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
+            ShoppingCart: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>,
+            X: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
+            Check: () => <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#25D366" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
         };
 
-        function App() {
+        const App = () => {
             const [products, setProducts] = useState([]);
-            const [isLoading, setIsLoading] = useState(true);
+            const [loading, setLoading] = useState(true);
+            const [cart, setCart] = useState([]);
+            
+            // 搜尋與篩選
             const [searchQuery, setSearchQuery] = useState('');
             const [selectedBrand, setSelectedBrand] = useState('All');
             const [sortOption, setSortOption] = useState('default');
             const [currentPage, setCurrentPage] = useState(1);
-            const [cart, setCart] = useState([]);
-            const [user, setUser] = useState(null); 
-            const [paymentMethod, setPaymentMethod] = useState('fps');
+
+            // 結帳與 Modal 狀態
             const [activeModal, setActiveModal] = useState(null); 
             const [selectedProduct, setSelectedProduct] = useState(null); 
             const [selectedSize, setSelectedSize] = useState(''); 
-            const [orderLinks, setOrderLinks] = useState({ waUrl: '', messengerUrl: '' }); 
-            const [orderMessage, setOrderMessage] = useState(''); // 儲存訂單內容以便複製
-
-            // 表單資訊
-            const [formData, setFormData] = useState({
-                firstName: '', lastName: '', phone: '', address: ''
-            });
+            const [paymentMethod, setPaymentMethod] = useState('fps');
+            const [formData, setFormData] = useState({ name: '', phone: '', address: '' });
+            const [orderLinks, setOrderLinks] = useState({ waUrl: '', messengerUrl: '' });
+            const [orderMessage, setOrderMessage] = useState('');
 
             // 讀取商品資料
             useEffect(() => {
-                const fetchData = async () => {
-                    try {
-                        const response = await fetch('./products.json');
-                        const data = await response.json();
-                        setProducts(data.filter(p => p.my_price > 0 || p.original_price > 0));
-                    } catch (err) { console.error(err); } finally { setIsLoading(false); }
-                };
-                fetchData();
+                fetch('products.json')
+                    .then(res => res.json())
+                    .then(data => {
+                        const processedData = data.map(item => {
+                            let price = 0;
+                            if (item.Price) {
+                                const priceMatch = String(item.Price).match(/[\d,.]+/);
+                                if (priceMatch) {
+                                    const eurPrice = parseFloat(priceMatch[0].replace(/,/g, ''));
+                                    price = Math.ceil((eurPrice * CURRENCY_RATE) + PRICE_MARKUP);
+                                }
+                            }
+                            return { ...item, calculatedPrice: price };
+                        }).filter(item => item.calculatedPrice > 0);
+                        
+                        setProducts(processedData);
+                        setLoading(false);
+                    })
+                    .catch(err => {
+                        console.error('Error loading products:', err);
+                        setLoading(false);
+                    });
             }, []);
 
+            // 計算品牌列表
             const brands = useMemo(() => {
-                const counts = {};
-                products.forEach(p => { if (p.brand) counts[p.brand] = (counts[p.brand] || 0) + 1; });
-                const sortedBrands = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
-                return [{ name: 'All', count: products.length }, ...sortedBrands.map(b => ({ name: b, count: counts[b] }))];
+                const brandCounts = products.reduce((acc, p) => {
+                    const brand = p.Brand || 'Other';
+                    acc[brand] = (acc[brand] || 0) + 1;
+                    return acc;
+                }, {});
+                
+                const brandList = Object.keys(brandCounts).map(name => ({
+                    name, count: brandCounts[name]
+                })).sort((a, b) => b.count - a.count);
+                
+                return [{ name: 'All', count: products.length }, ...brandList];
             }, [products]);
 
+            // 篩選與排序邏輯
             const filteredProducts = useMemo(() => {
-                let result = [...products];
-                if (selectedBrand !== 'All') result = result.filter(p => p.brand === selectedBrand);
-                if (searchQuery.trim()) {
-                    const q = searchQuery.toLowerCase();
-                    result = result.filter(p => (p.name?.toLowerCase().includes(q)) || (p.brand?.toLowerCase().includes(q)));
+                let result = products;
+
+                if (selectedBrand !== 'All') {
+                    result = result.filter(p => p.Brand === selectedBrand);
                 }
-                result.forEach(p => {
-                    p.calcMyPrice = calculatePrice(p.my_price);
-                    p.calcOrigPrice = calculatePrice(p.original_price);
-                });
-                if (sortOption === 'price-asc') result.sort((a, b) => a.calcMyPrice - b.calcMyPrice);
-                else if (sortOption === 'price-desc') result.sort((a, b) => b.calcMyPrice - a.calcMyPrice);
+
+                if (searchQuery.trim()) {
+                    const query = searchQuery.toLowerCase();
+                    result = result.filter(p => 
+                        (p.Name && p.Name.toLowerCase().includes(query)) ||
+                        (p.Brand && p.Brand.toLowerCase().includes(query))
+                    );
+                }
+
+                if (sortOption === 'price-asc') {
+                    result.sort((a, b) => a.calculatedPrice - b.calculatedPrice);
+                } else if (sortOption === 'price-desc') {
+                    result.sort((a, b) => b.calculatedPrice - a.calculatedPrice);
+                }
+
                 return result;
             }, [products, selectedBrand, searchQuery, sortOption]);
 
-            const currentItems = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-            const cartTotal = cart.reduce((sum, item) => sum + item.price, 0);
+            // 分頁邏輯
+            const paginatedProducts = useMemo(() => {
+                const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+                return filteredProducts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+            }, [filteredProducts, currentPage]);
 
-            const handlePayment = (e) => {
-                e.preventDefault();
+            const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
 
-                // 生成訂單訊息內容
-                const orderId = Math.random().toString(36).substr(2, 6).toUpperCase();
-                let orderItemsText = cart.map(item => `- ${item.brand} ${item.name} (Size: ${formatSize(item.selectedSize)}) x 1`).join('\n');
-                
-                const message = `🛍️ 【新訂單通知】編號: #${orderId}\n\n` +
-                              `👤 客人姓名: ${formData.lastName}${formData.firstName}\n` +
-                              `📞 聯絡電話: ${formData.phone}\n` +
-                              `📍 收貨地址: ${formData.address}\n\n` +
-                              `🛒 訂單內容:\n${orderItemsText}\n\n` +
-                              `💰 總計金額: HK$ ${cartTotal.toLocaleString()}\n` +
-                              `💳 付款方式: ${paymentMethod.toUpperCase()}\n\n` +
-                              `請核對款項並安排發貨。`;
+            useEffect(() => { setCurrentPage(1); }, [selectedBrand, searchQuery, sortOption]);
 
-                // ==========================================
-                // 🌟 發送數據到 Google 試算表 🌟
-                // ==========================================
-                if (GOOGLE_SHEETS_API_URL && GOOGLE_SHEETS_API_URL !== "請在此貼上你的_Google_Apps_Script_URL") {
-                    const sheetData = {
-                        orderId: orderId,
-                        customerName: `${formData.lastName}${formData.firstName}`,
-                        phone: formData.phone,
-                        address: formData.address,
-                        itemsText: orderItemsText,
-                        total: cartTotal,
-                        paymentMethod: paymentMethod.toUpperCase()
-                    };
-
-                    // 使用 fetch 發送 (加上 mode: 'no-cors' 以防跨網域阻擋問題)
-                    fetch(GOOGLE_SHEETS_API_URL, {
-                        method: 'POST',
-                        mode: 'no-cors', 
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(sheetData)
-                    }).then(() => {
-                        console.log('請求已發送至 Google 試算表');
-                    }).catch(error => console.error('Google Sheets 記錄發生錯誤:', error));
+            // 購物車功能
+            const addToCart = () => {
+                if (!selectedSize) {
+                    alert('請選擇尺寸');
+                    return;
                 }
+                
+                const existingItemIndex = cart.findIndex(item => item.id === selectedProduct.id && item.size === selectedSize);
+                
+                if (existingItemIndex >= 0) {
+                    const newCart = [...cart];
+                    newCart[existingItemIndex].quantity += 1;
+                    setCart(newCart);
+                } else {
+                    setCart([...cart, { ...selectedProduct, size: selectedSize, quantity: 1 }]);
+                }
+                
+                setActiveModal(null);
+                setSelectedSize('');
+                alert('已加入購物車！');
+            };
 
-                // 準備 WhatsApp 和 Messenger 連結
+            const updateQuantity = (index, delta) => {
+                const newCart = [...cart];
+                newCart[index].quantity += delta;
+                if (newCart[index].quantity <= 0) {
+                    newCart.splice(index, 1);
+                }
+                setCart(newCart);
+            };
+
+            const cartTotal = cart.reduce((sum, item) => sum + (item.calculatedPrice * item.quantity), 0);
+            const cartQty = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+            // 送出訂單處理
+            const handleSubmitOrder = (e) => {
+                e.preventDefault();
+                
+                if(cart.length === 0) return alert("購物車是空的！");
+                if(!formData.name || !formData.phone || !formData.address) return alert("請填寫完整的收件資訊！");
+
+                const orderId = "ORD-" + Date.now().toString().slice(-6);
+                
+                let itemsText = cart.map(item => 
+                    `- ${item.Brand} ${item.Name}\n  尺寸: ${item.size} | 數量: ${item.quantity} | 單價: HK$ ${item.calculatedPrice}`
+                ).join("\n\n");
+
+                // 準備傳送給 Google Sheets 的 JSON 資料
+                const sheetData = {
+                    orderId: orderId,
+                    customerName: formData.name,
+                    phone: formData.phone,
+                    address: formData.address,
+                    itemsText: itemsText,
+                    total: cartTotal,
+                    paymentMethod: paymentMethod.toUpperCase()
+                };
+
+                // 背景發送資料到 Google Sheets
+                fetch(GOOGLE_SHEETS_API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(sheetData)
+                }).catch(err => console.error("Sheets Error:", err));
+
+                // 準備通知文字
+                const message = `🛍️ *新訂單通知* (${orderId})\n\n` +
+                    `*收件人:* ${formData.name}\n` +
+                    `*電話:* ${formData.phone}\n` +
+                    `*地址:* ${formData.address}\n` +
+                    `*付款方式:* ${paymentMethod.toUpperCase()}\n\n` +
+                    `*訂單內容:*\n${itemsText}\n\n` +
+                    `*總計: HK$ ${cartTotal}*`;
+
                 const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
                 const messengerUrl = `https://m.me/${MESSENGER_ID}`;
 
-                setOrderMessage(message); // 儲存訊息以供點擊時複製
+                setOrderMessage(message); 
                 setOrderLinks({ waUrl, messengerUrl });
                 setActiveModal('success');
                 setCart([]); 
-
-                // 在手機上自動跳轉 WhatsApp
-                setTimeout(() => {
-                    window.location.href = waUrl;
-                }, 300);
             };
 
-            if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-[#f9f9f9] font-bold">讀取庫存中...</div>;
+            // 處理 Messenger 點擊複製
+            const handleMessengerClick = (e) => {
+                const textArea = document.createElement("textarea");
+                textArea.value = orderMessage;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    alert("✅ 訂單內容已自動複製！\n跳轉至 Messenger 後，請直接「貼上」發送給我們。");
+                } catch (err) {
+                    alert("複製失敗，請手動截圖保留訂單編號。");
+                }
+                document.body.removeChild(textArea);
+            };
 
             return (
-                <div className="min-h-screen bg-[#f9f9f9] text-[#1a1a1a] font-sans relative">
-                    <nav className="bg-white/90 backdrop-blur-md border-b sticky top-0 z-40 px-4 py-3 shadow-sm">
-                        <div className="max-w-7xl mx-auto flex justify-between items-center">
-                            <h1 className="text-2xl font-black italic tracking-tighter cursor-pointer" onClick={() => { setActiveModal(null); setSelectedBrand('All'); }}>EXCLSV_SELECT</h1>
-                            <div className="flex items-center gap-6">
-                                <button onClick={() => !user ? setActiveModal('auth') : null} className="hover:opacity-70 flex items-center gap-1">
-                                    <Icons.User /> {user && <span className="text-xs font-bold">{user.name}</span>}
-                                </button>
-                                <button onClick={() => setActiveModal('cart')} className="relative cursor-pointer hover:opacity-70">
-                                    <Icons.ShoppingBag />
-                                    {cart.length > 0 && <span className="absolute -top-1.5 -right-2 bg-red-600 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{cart.length}</span>}
+                <div className="min-h-screen pb-20">
+                    {/* 頂部通知條 */}
+                    <div className="bg-black text-white text-[10px] md:text-xs font-bold tracking-widest text-center py-2 overflow-hidden whitespace-nowrap">
+                        DIRECT FROM EUROPEAN BOUTIQUES • NEW ITEMS ADDED DAILY • GLOBAL SHIPPING • 100% AUTHENTIC GUARANTEED
+                    </div>
+
+                    {/* 導覽列 */}
+                    <nav className="bg-white border-b sticky top-0 z-40">
+                        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+                            <h1 className="text-2xl font-black italic tracking-tighter cursor-pointer" onClick={() => {setSearchQuery(''); setSelectedBrand('All');}}>
+                                EXCLSV_SELECT
+                            </h1>
+                            <div className="flex items-center gap-4">
+                                <span className="hidden md:inline-block text-xs font-bold text-[#E60012] border border-[#E60012] px-2 py-1 rounded">OUTLET LIVE</span>
+                                <button className="relative p-2" onClick={() => setActiveModal('cart')}>
+                                    <Icons.ShoppingCart />
+                                    {cartQty > 0 && (
+                                        <span className="absolute top-0 right-0 bg-[#E60012] text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center">
+                                            {cartQty}
+                                        </span>
+                                    )}
                                 </button>
                             </div>
                         </div>
                     </nav>
 
                     <main className="max-w-7xl mx-auto py-8 px-4">
+                        {/* 搜尋與篩選列 */}
                         <div className="flex flex-col md:flex-row justify-between gap-4 mb-8 bg-white p-4 rounded-xl shadow-sm border border-neutral-100">
-                            <div className="relative w-full md:w-96">
-                                <input type="text" placeholder="搜尋品牌或單品..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2.5 text-sm font-bold border rounded-lg bg-[#f9f9f9]" />
-                                <div className="absolute left-3.5 top-3 text-neutral-400"><Icons.Search /></div>
-                            </div>
-                            <div className="flex gap-2 w-full md:w-auto">
-                                <select value={selectedBrand} onChange={(e) => setSelectedBrand(e.target.value)} className="flex-1 md:flex-none text-sm font-bold border rounded-lg px-4 py-2.5 bg-[#f9f9f9] cursor-pointer">
+                            <div className="relative w-full md:w-96 flex gap-2">
+                                <div className="relative flex-1">
+                                    <input 
+                                        type="text" 
+                                        placeholder="搜尋品牌或單品..." 
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2.5 text-sm font-bold border rounded-lg bg-[#f9f9f9]"
+                                    />
+                                    <div className="absolute left-3.5 top-3 text-neutral-400">
+                                        <Icons.Search />
+                                    </div>
+                                </div>
+                                {/* 品牌下拉選單 (手機與電腦共用) */}
+                                <select 
+                                    value={selectedBrand} 
+                                    onChange={(e) => setSelectedBrand(e.target.value)}
+                                    className="w-32 md:w-auto text-sm font-bold border rounded-lg px-2 bg-[#f9f9f9] cursor-pointer"
+                                >
                                     {brands.map((brand) => (
                                         <option key={brand.name} value={brand.name}>
                                             {brand.name === 'All' ? '所有品牌' : brand.name} {brand.name !== 'All' && `(${brand.count})`}
                                         </option>
                                     ))}
                                 </select>
-                                <select value={sortOption} onChange={(e) => setSortOption(e.target.value)} className="flex-1 md:flex-none text-sm font-bold border rounded-lg px-4 py-2.5 bg-[#f9f9f9] cursor-pointer">
+                            </div>
+                            <div className="flex gap-2 w-full md:w-auto">
+                                <select 
+                                    value={sortOption} 
+                                    onChange={(e) => setSortOption(e.target.value)}
+                                    className="flex-1 md:flex-none text-sm font-bold border rounded-lg px-4 py-2.5 bg-[#f9f9f9] cursor-pointer"
+                                >
                                     <option value="default">排序: 推薦</option>
                                     <option value="price-asc">價格: 低到高</option>
                                     <option value="price-desc">價格: 高到低</option>
@@ -215,8 +311,176 @@
                             </div>
                         </div>
 
+                        {/* 品牌橫向捲動列 (保留給大螢幕快速點擊) */}
                         <div className="flex gap-2 overflow-x-auto pb-6 hide-scrollbar">
-{/* ... existing code ... */}
+                            {brands.slice(0, 15).map(brand => (
+                                <button 
+                                    key={brand.name}
+                                    onClick={() => setSelectedBrand(brand.name)}
+                                    className={`whitespace-nowrap px-6 py-2 rounded-full text-xs font-bold transition-colors ${
+                                        selectedBrand === brand.name 
+                                        ? 'bg-black text-white' 
+                                        : 'bg-white border text-neutral-400 hover:border-black hover:text-black'
+                                    }`}
+                                >
+                                    {brand.name === 'All' ? 'ALL' : brand.name} {brand.name !== 'All' && `(${brand.count})`}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* 載入中 */}
+                        {loading ? (
+                            <div className="text-center py-20 text-neutral-500 font-bold">載入商品中，請稍候...</div>
+                        ) : (
+                            <>
+                                <p className="text-xs text-neutral-400 font-bold mb-4">{filteredProducts.length} 件商品符合您的搜尋</p>
+                                
+                                {/* 商品網格 */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
+                                    {paginatedProducts.map((product, idx) => (
+                                        <div 
+                                            key={product.id || idx} 
+                                            onClick={() => { setSelectedProduct(product); setActiveModal('product'); }}
+                                            className="group cursor-pointer flex flex-col h-full bg-white rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300"
+                                        >
+                                            <div className="relative aspect-square bg-[#F5F5F5] p-4 flex items-center justify-center">
+                                                <div className="absolute top-2 left-2 bg-[#E60012] text-white text-[10px] font-bold px-2 py-0.5 rounded">SALE</div>
+                                                <img src={product.Image} alt={product.Name} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                                            </div>
+                                            <div className="p-3 md:p-4 flex flex-col flex-1">
+                                                <p className="text-[10px] md:text-xs text-neutral-400 font-bold mb-1">{product.Brand}</p>
+                                                <h3 className="text-xs md:text-sm font-bold leading-tight mb-3 line-clamp-2">{product.Name}</h3>
+                                                <div className="mt-auto">
+                                                    <p className="text-lg md:text-xl font-black italic tracking-tighter">HK$ {product.calculatedPrice}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* 分頁控制 */}
+                                {totalPages > 1 && (
+                                    <div className="flex justify-center items-center gap-4 mt-12">
+                                        <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-4 py-2 border rounded-lg font-bold disabled:opacity-30">上一頁</button>
+                                        <span className="font-bold text-sm">{currentPage} / {totalPages}</span>
+                                        <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-4 py-2 border rounded-lg font-bold disabled:opacity-30">下一頁</button>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </main>
+
+                    {/* 商品詳情彈出視窗 */}
+                    {activeModal === 'product' && selectedProduct && (
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center p-0 md:p-4 fade-in" onClick={(e) => { if(e.target === e.currentTarget) setActiveModal(null); }}>
+                            <div className="bg-white w-full md:w-[800px] md:rounded-2xl rounded-t-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]">
+                                <div className="w-full md:w-1/2 bg-[#F5F5F5] p-8 flex items-center justify-center relative">
+                                    <button onClick={() => setActiveModal(null)} className="absolute top-4 right-4 md:hidden bg-white p-2 rounded-full shadow"><Icons.X /></button>
+                                    <img src={selectedProduct.Image} alt={selectedProduct.Name} className="w-full h-auto object-contain mix-blend-multiply" />
+                                </div>
+                                <div className="w-full md:w-1/2 p-6 md:p-8 overflow-y-auto">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <p className="text-sm text-neutral-500 font-bold">{selectedProduct.Brand}</p>
+                                        <button onClick={() => setActiveModal(null)} className="hidden md:block"><Icons.X /></button>
+                                    </div>
+                                    <h2 className="text-xl md:text-2xl font-bold mb-4">{selectedProduct.Name}</h2>
+                                    <p className="text-3xl font-black italic tracking-tighter mb-6">HK$ {selectedProduct.calculatedPrice}</p>
+                                    
+                                    <div className="mb-6">
+                                        <p className="font-bold text-sm mb-3">選擇尺寸 <span className="text-xs text-neutral-400 font-normal">(歐碼)</span></p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedProduct.Sizes ? selectedProduct.Sizes.split(',').map(size => (
+                                                <button key={size} onClick={() => setSelectedSize(size.trim())} className={`px-4 py-2 border rounded-lg text-sm font-bold transition-colors ${selectedSize === size.trim() ? 'border-black bg-black text-white' : 'hover:border-black'}`}>
+                                                    {size.trim()}
+                                                </button>
+                                            )) : <span className="text-sm text-neutral-500">單一尺寸</span>}
+                                        </div>
+                                    </div>
+
+                                    <button onClick={addToCart} className="w-full py-4 bg-black text-white font-black text-lg rounded-xl hover:bg-neutral-800 transition-colors">
+                                        加入購物車
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 購物車側邊欄 */}
+                    {activeModal === 'cart' && (
+                        <div className="fixed inset-0 bg-black/50 z-50 flex justify-end fade-in" onClick={(e) => { if(e.target === e.currentTarget) setActiveModal(null); }}>
+                            <div className="bg-white w-full md:w-[400px] h-full flex flex-col shadow-2xl">
+                                <div className="p-4 border-b flex justify-between items-center">
+                                    <h2 className="text-xl font-black italic">SHOPPING CART</h2>
+                                    <button onClick={() => setActiveModal(null)}><Icons.X /></button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                    {cart.length === 0 ? (
+                                        <div className="h-full flex flex-col items-center justify-center text-neutral-400 space-y-4">
+                                            <Icons.ShoppingCart />
+                                            <p className="font-bold">購物車是空的</p>
+                                        </div>
+                                    ) : (
+                                        cart.map((item, idx) => (
+                                            <div key={idx} className="flex gap-4 border p-3 rounded-xl relative">
+                                                <img src={item.Image} className="w-20 h-20 object-contain bg-[#F5F5F5] rounded-lg p-2" />
+                                                <div className="flex-1">
+                                                    <p className="text-[10px] text-neutral-500 font-bold">{item.Brand}</p>
+                                                    <p className="text-xs font-bold line-clamp-2 leading-tight mb-1">{item.Name}</p>
+                                                    <p className="text-xs text-neutral-500 mb-2">尺寸: {item.size}</p>
+                                                    <div className="flex justify-between items-center">
+                                                        <div className="flex items-center border rounded-lg overflow-hidden">
+                                                            <button onClick={() => updateQuantity(idx, -1)} className="px-2 py-1 bg-neutral-100 hover:bg-neutral-200">-</button>
+                                                            <span className="px-3 text-xs font-bold">{item.quantity}</span>
+                                                            <button onClick={() => updateQuantity(idx, 1)} className="px-2 py-1 bg-neutral-100 hover:bg-neutral-200">+</button>
+                                                        </div>
+                                                        <p className="font-black">HK$ {item.calculatedPrice * item.quantity}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                                {cart.length > 0 && (
+                                    <div className="p-4 border-t bg-neutral-50">
+                                        <div className="flex justify-between text-xl font-black mb-4">
+                                            <span>總計</span>
+                                            <span>HK$ {cartTotal}</span>
+                                        </div>
+                                        <button onClick={() => setActiveModal('checkout')} className="w-full py-4 bg-black text-white font-black text-lg rounded-xl shadow-lg">去結帳</button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 結帳與付款 Modal */}
+                    {activeModal === 'checkout' && (
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 fade-in" onClick={(e) => { if(e.target === e.currentTarget) setActiveModal('cart'); }}>
+                            <div className="bg-white w-full max-w-2xl rounded-2xl overflow-hidden max-h-[90vh] flex flex-col">
+                                <div className="p-4 border-b flex justify-between items-center bg-neutral-50">
+                                    <h2 className="text-xl font-black">填寫收件資訊與付款</h2>
+                                    <button onClick={() => setActiveModal('cart')}><Icons.X /></button>
+                                </div>
+                                <form onSubmit={handleSubmitOrder} className="p-6 overflow-y-auto space-y-6">
+                                    <div>
+                                        <h3 className="font-bold text-lg mb-3">1. 收件人資訊</h3>
+                                        <div className="space-y-3">
+                                            <input required type="text" placeholder="收件人姓名" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full p-3 border rounded-xl bg-neutral-50 font-medium" />
+                                            <input required type="tel" placeholder="聯絡電話" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full p-3 border rounded-xl bg-neutral-50 font-medium" />
+                                            <textarea required placeholder="收貨地址 (順豐站/智能櫃代碼 或 詳細地址)" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full p-3 border rounded-xl bg-neutral-50 font-medium h-24 resize-none" />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h3 className="font-bold text-lg mb-3">2. 選擇付款方式</h3>
+                                        <div className="grid grid-cols-2 gap-2 mb-4">
+                                            {['fps', 'payme', 'alipay', 'wechat'].map(m => (
+                                                <button type="button" key={m} onClick={() => setPaymentMethod(m)} className={`py-3 border-2 font-bold rounded-xl ${paymentMethod === m ? 'border-black bg-neutral-50' : 'border-neutral-200'}`}>
+                                                    {m === 'fps' ? 'FPS 轉數快' : m.toUpperCase()}
+                                                </button>
+                                            ))}
+                                        </div>
+
                                         <div className="bg-neutral-50 border p-6 rounded-xl flex flex-col items-center justify-center text-center">
                                             {paymentMethod === 'fps' && (
                                                 <div className="space-y-2">
@@ -226,27 +490,74 @@
                                                 </div>
                                             )}
                                             {paymentMethod === 'payme' && (
-{/* ... existing code ... */}
-                                <p className="text-neutral-500 text-sm mb-6">系統正在為您跳轉至 WhatsApp 發送詳情...</p>
+                                                <div className="space-y-3 flex flex-col items-center">
+                                                    <p className="text-lg font-bold text-[#E60028]">請掃描 PayMe QR Code 付款：</p>
+                                                    <img src="./payme.jpeg" alt="PayMe QR Code" className="w-48 h-48 object-contain rounded-lg shadow-sm border border-neutral-200 bg-white p-2" />
+                                                </div>
+                                            )}
+                                            {paymentMethod === 'alipay' && (
+                                                <div className="space-y-3 flex flex-col items-center">
+                                                    <p className="text-lg font-bold text-[#00A8E1]">請掃描 AlipayHK QR Code 付款：</p>
+                                                    <img src="./alipay.jpeg" alt="AlipayHK QR Code" className="w-48 h-48 object-contain rounded-lg shadow-sm border border-neutral-200 bg-white p-2" />
+                                                </div>
+                                            )}
+                                            {paymentMethod === 'wechat' && (
+                                                <div className="space-y-3 flex flex-col items-center">
+                                                    <p className="text-lg font-bold text-[#09B83E]">請掃描 WeChat Pay QR Code 付款：</p>
+                                                    <img src="./wechat.jpeg" alt="WeChat Pay QR Code" className="w-48 h-48 object-contain rounded-lg shadow-sm border border-neutral-200 bg-white p-2" />
+                                                </div>
+                                            )}
+                                            <p className="text-xs text-neutral-600 mt-5 font-bold bg-yellow-100 px-4 py-2 rounded-full">⚠️ 完成轉帳或截圖保存後，請點擊下方按鈕提交訂單。</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <button type="submit" className="w-full py-4 bg-black text-white font-black text-lg rounded-xl shadow-lg hover:bg-neutral-800 transition-colors">
+                                        我已付款，提交訂單通知
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 成功頁面 Modal */}
+                    {activeModal === 'success' && (
+                        <div className="fixed inset-0 bg-white z-50 flex items-center justify-center p-4 fade-in">
+                            <div className="max-w-md w-full text-center flex flex-col items-center">
+                                <div className="mb-6 bg-emerald-100 p-4 rounded-full">
+                                    <Icons.Check />
+                                </div>
+                                <h2 className="text-2xl font-black mb-2">訂單建立成功！</h2>
+                                <p className="text-neutral-500 font-bold mb-8">請選擇下方其中一種方式通知我們確認收款</p>
                                 
-                                {/* 保底按鈕區塊 */}
-                                <div className="space-y-3 mb-8">
-                                    <a href={orderLinks.waUrl} target="_blank" rel="noopener noreferrer" className="block w-full py-3.5 bg-[#25D366] text-white font-black rounded-xl shadow-md hover:opacity-90 transition-opacity">
-                                        🟢 確認發送 WhatsApp
+                                <div className="space-y-3 w-full mb-8">
+                                    {/* WhatsApp 按鈕 */}
+                                    <a href={orderLinks.waUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full py-4 bg-[#25D366] text-white font-black rounded-xl shadow-md hover:opacity-90 transition-opacity">
+                                        <span className="mr-2 text-xl">🟢</span> 確認發送 WhatsApp
                                     </a>
-                                    <a href={orderLinks.messengerUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => {
-                                        // 自動複製訂單文字的小工具
-                                        const textArea = document.createElement("textarea");
-                                        textArea.value = orderMessage;
-                                        document.body.appendChild(textArea);
-                                        textArea.select();
-                                        document.execCommand('copy');
-                                        document.body.removeChild(textArea);
-                                        alert("✅ 訂單內容已複製！\n跳轉至 Messenger 後，請直接「貼上」發送給我們。");
-                                    }} className="block w-full py-3.5 bg-[#0084FF] text-white font-black rounded-xl shadow-md hover:opacity-90 transition-opacity">
-                                        💬 透過 Messenger 發送 (點擊自動複製訂單)
+                                    
+                                    {/* Messenger 按鈕 */}
+                                    <button onClick={handleMessengerClick} className="w-full py-4 bg-[#0084FF] text-white font-black rounded-xl shadow-md hover:opacity-90 transition-opacity">
+                                        <span className="mr-2 text-xl">💬</span> 複製訂單並前往 Messenger
+                                    </button>
+                                    
+                                    {/* Messenger 隱藏連結，讓使用者點擊複製後手動跳轉（作為備用） */}
+                                    <a href={orderLinks.messengerUrl} target="_blank" rel="noopener noreferrer" className="block text-xs font-bold text-[#0084FF] mt-2 underline">
+                                        👉 如果沒有自動跳轉，請點此手動打開 Messenger
                                     </a>
                                 </div>
 
-                                <button onClick={() => setActiveModal(null)} className="text-sm font-bold text-neutral-400 hover:text-black underline">返回首頁繼續選購</button>
-{/* ... existing code ... */}
+                                <button onClick={() => setActiveModal(null)} className="text-sm font-bold text-neutral-400 hover:text-black underline">
+                                    返回首頁繼續選購
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

@@ -106,7 +106,7 @@
                     const b = p.brand || 'Other';
                     counts[b] = (counts[b] || 0) + 1;
                 });
-                // 修改處：將品牌依照 A-Z 順序排列 (localeCompare 實現字母排序)
+                // 將品牌依照 A-Z 順序排列 (localeCompare 實現字母排序)
                 const sortedBrands = Object.keys(counts).sort((a, b) => a.localeCompare(b));
                 return [{ name: 'All', count: products.length }, ...sortedBrands.map(b => ({ name: b, count: counts[b] }))];
             }, [products]);
@@ -387,7 +387,8 @@
 
                                         <div className="pt-1 flex flex-col">
                                             <span className="text-xl font-black italic tracking-tight">HK$ {p.my_price}</span>
-                                            {p.original_price > p.my_price && <span className="text-[10px] text-neutral-300 line-through">MSRP: HK$ {p.original_price}</span>}
+                                            {/* 將 MSRP 改為 原價 */}
+                                            {p.original_price > p.my_price && <span className="text-[10px] text-neutral-300 line-through">原價: HK$ {p.original_price}</span>}
                                         </div>
                                     </div>
                                     
@@ -469,7 +470,8 @@
                                     <div className="mb-6">
                                         <span className="text-3xl font-black italic">HK$ {selectedProduct.my_price}</span>
                                         {selectedProduct.original_price > selectedProduct.my_price && (
-                                            <span className="text-sm text-neutral-400 line-through ml-3">HK$ {selectedProduct.original_price}</span>
+                                            /* 在商品詳情也統一加上 原價: 標示 */
+                                            <span className="text-sm text-neutral-400 line-through ml-3">原價: HK$ {selectedProduct.original_price}</span>
                                         )}
                                     </div>
 

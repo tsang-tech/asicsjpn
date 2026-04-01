@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EXCLSV_SELECT - 訂單自動通知版</title>
+    <title>EXCLSV_SELECT - 試算表自動記錄版</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -26,12 +26,18 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        // --- 核心設定區 ---
+        // ==========================================
+        // 🌟 核心設定區 🌟
+        // ==========================================
         const WHATSAPP_NUMBER = "85251264018";
         const ADMIN_EMAIL = "tschho@gmail.com";
+        
+        // 已更新為正確的 /exec 網址！
+        const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbx3oUI7by7471HcbQh5s99fHrT1Y4GgyUqky7CcyeGN3wDQhJ0o48zZcIT_T-tTw_4F/exec"; 
+
         const CURRENCY_RATE = 1; 
         const PRICE_MARKUP = 1;
-        const ITEMS_PER_PAGE = 50;
+        const ITEMS_PER_PAGE = 100;
 
         const calculatePrice = (price) => {
             if (!price || price <= 0) return 0;
@@ -66,13 +72,14 @@
             const [activeModal, setActiveModal] = useState(null); 
             const [selectedProduct, setSelectedProduct] = useState(null); 
             const [selectedSize, setSelectedSize] = useState(''); 
-            const [orderLinks, setOrderLinks] = useState({ waUrl: '', mailUrl: '' }); // 儲存發送連結
+            const [orderLinks, setOrderLinks] = useState({ waUrl: '', mailUrl: '' }); 
 
             // 表單資訊
             const [formData, setFormData] = useState({
                 firstName: '', lastName: '', phone: '', address: ''
             });
 
+            // 讀取商品資料
             useEffect(() => {
                 const fetchData = async () => {
                     try {
@@ -126,16 +133,40 @@
                               `💳 付款方式: ${paymentMethod.toUpperCase()}\n\n` +
                               `請核對款項並安排發貨。`;
 
+                // ==========================================
+                // 🌟 發送數據到 Google 試算表 🌟
+                // ==========================================
+                if (GOOGLE_SHEETS_API_URL && GOOGLE_SHEETS_API_URL !== "請在此貼上你的_Google_Apps_Script_URL") {
+                    const sheetData = {
+                        orderId: orderId,
+                        customerName: `${formData.lastName}${formData.firstName}`,
+                        phone: formData.phone,
+                        address: formData.address,
+                        itemsText: orderItemsText,
+                        total: cartTotal,
+                        paymentMethod: paymentMethod.toUpperCase()
+                    };
+
+                    // 使用 fetch 發送 (加上 mode: 'no-cors' 以防跨網域阻擋問題)
+                    fetch(GOOGLE_SHEETS_API_URL, {
+                        method: 'POST',
+                        mode: 'no-cors', 
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(sheetData)
+                    }).then(() => {
+                        console.log('請求已發送至 Google 試算表');
+                    }).catch(error => console.error('Google Sheets 記錄發生錯誤:', error));
+                }
+
+                // 準備 WhatsApp 和 Email 連結
                 const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
                 const mailUrl = `mailto:${ADMIN_EMAIL}?subject=${encodeURIComponent(`[訂單 #${orderId}] ${formData.lastName} 的新訂單`)}&body=${encodeURIComponent(message)}`;
 
-                // 將連結存入 State 供成功頁面的按鈕使用
                 setOrderLinks({ waUrl, mailUrl });
                 setActiveModal('success');
                 setCart([]); 
 
-                // 在手機上，直接修改 location.href 是最不容易被擋下的自動跳轉方式
-                // 延遲一點點讓 DOM 渲染完成
+                // 在手機上自動跳轉 WhatsApp
                 setTimeout(() => {
                     window.location.href = waUrl;
                 }, 300);

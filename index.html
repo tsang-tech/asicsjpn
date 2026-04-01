@@ -106,7 +106,8 @@
                     const b = p.brand || 'Other';
                     counts[b] = (counts[b] || 0) + 1;
                 });
-                const sortedBrands = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+                // 修改處：將品牌依照 A-Z 順序排列 (localeCompare 實現字母排序)
+                const sortedBrands = Object.keys(counts).sort((a, b) => a.localeCompare(b));
                 return [{ name: 'All', count: products.length }, ...sortedBrands.map(b => ({ name: b, count: counts[b] }))];
             }, [products]);
 

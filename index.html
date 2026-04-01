@@ -4,12 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EXCLSV_SELECT - 歐洲精品代購</title>
-    <!-- 引入 React 和 ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- 引入 Babel 以編譯 JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <style>
@@ -34,7 +31,7 @@
         const { useState, useEffect, useMemo } = React;
         const ITEMS_PER_PAGE = 50;
 
-        // --- SVG 圖示組件 ---
+        // --- SVG 圖示組件 (完全取代 Lucide) ---
         const IconShoppingBag = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>);
         const IconSearch = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>);
         const IconChevronRight = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>);
@@ -49,6 +46,7 @@
             { "brand": "NIKE", "name": "Air Force 1 '07 Premium", "original_price": 899, "my_price": 699, "image": "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400&h=533&fit=crop", "sizes": ["7", "7.5", "8", "8.5", "9"], "status": "AVAILABLE" }
         ];
 
+        // 格式化尺碼顯示 (自動加上 US Size)
         const formatSize = (size) => {
             if (!size) return '';
             const trimmedSize = String(size).trim();
@@ -73,6 +71,7 @@
             const [selectedProduct, setSelectedProduct] = useState(null);
             const [selectedSize, setSelectedSize] = useState(null); 
 
+            // 遊客收貨與結帳資料
             const [orderData, setOrderData] = useState({
                 name: '',
                 phone: '',
@@ -165,9 +164,10 @@
             const generateFinalOrder = async () => {
                 setIsSubmitting(true);
 
-                // 更新後的 WhatsApp 號碼
+                // 您的專屬 WhatsApp 號碼
                 const phoneNumber = "85251264018";
                 
+                let itemsTextForSheet = "";
                 let orderText = "🛒 *新訂單通知*\n";
                 orderText += `👤 收件人姓名: ${orderData.name}\n`;
                 orderText += `📞 聯絡電話: ${orderData.phone}\n`;
@@ -176,39 +176,39 @@
                 orderText += "------------------\n";
                 
                 cart.forEach((item, index) => {
-                    orderText += `${index + 1}. ${item.brand || '無品牌'} - ${item.name}\n   尺碼: ${item.selectedSize}\n   數量: ${item.quantity}\n   價格: HK$ ${item.my_price * item.quantity}\n\n`;
+                    const itemLine = `${index + 1}. ${item.brand || '無品牌'} - ${item.name}\n   尺碼: ${item.selectedSize}\n   數量: ${item.quantity}\n   價格: HK$ ${item.my_price * item.quantity}\n\n`;
+                    orderText += itemLine;
+                    itemsTextForSheet += itemLine;
                 });
                 orderText += `------------------\n💰 *總金額: HK$ ${cartTotal}*`;
 
-                const webhookUrl = "https://script.google.com/macros/s/AKfycbwFjqR5gcH2aBn6AFzOKrCffo3hGcQg19N5ALW0oCKeUJLQTPltj7HWPIOdv_ZhvxMV/exec";
-                const payload = {
-                    name: orderData.name,
-                    phone: orderData.phone,
-                    address: orderData.address,
-                    paymentMethod: orderData.paymentMethod,
-                    totalAmount: cartTotal,
-                    orderDetails: orderText,
-                    orderTime: new Date().toLocaleString('zh-HK')
-                };
+                const orderId = "ORD-" + Date.now().toString().slice(-6);
+
+                // 將資料轉換為標準 URLSearchParams 表單格式，100% 確保 Google Script 收到資料
+                const formDataObj = new URLSearchParams();
+                formDataObj.append('orderId', orderId);
+                formDataObj.append('customerName', orderData.name);
+                formDataObj.append('phone', orderData.phone);
+                formDataObj.append('address', orderData.address);
+                formDataObj.append('itemsText', itemsTextForSheet); // 僅傳送商品內容給 Sheet
+                formDataObj.append('total', cartTotal);
+                formDataObj.append('paymentMethod', orderData.paymentMethod);
+
+                // 您最新的 Google Apps Script 網址
+                const webhookUrl = "https://script.google.com/macros/s/AKfycbzNh86G8XK1UmlTBCflB0oFhVuXbiFzdi7SRAPtF31WBPAmZ6u89QDZrdVmX4YFwWzj3Q/exec";
 
                 const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(orderText)}`;
                 setOrderLinks({ whatsappUrl, orderDetails: orderText });
 
                 try {
-                    // 將資料轉換為標準表單格式 (application/x-www-form-urlencoded)
-                    // 這樣能有效避免 Google Apps Script 在 no-cors 模式下遺失 JSON 資料的問題
-                    const formData = new URLSearchParams();
-                    Object.keys(payload).forEach(key => {
-                        formData.append(key, payload[key]);
-                    });
-
+                    // 背景發送資料到 Google Sheets
                     await fetch(webhookUrl, {
                         method: 'POST',
                         mode: 'no-cors',
                         headers: {
                             'Content-Type': 'application/x-www-form-urlencoded'
                         },
-                        body: formData.toString()
+                        body: formDataObj.toString()
                     });
                 } catch (error) {
                     console.error("Fetch Error:", error);
@@ -237,19 +237,19 @@
                     'PayMe': { 
                         color: 'border-[#E51937]/20 bg-[#E51937]/5', 
                         textCol: 'text-[#E51937]', 
-                        imgPath: './payme.png', 
+                        imgPath: './payme.jpeg', // 修改回您原始設定的 .jpeg 副檔名
                         info: <p className="mt-2 text-[#E51937] font-bold">請掃描上方 PayMe QR Code 進行付款</p> 
                     },
                     '支付寶 (AlipayHK)': { 
                         color: 'border-[#00A0E9]/20 bg-[#00A0E9]/5', 
                         textCol: 'text-[#00A0E9]', 
-                        imgPath: './alipay.png', 
+                        imgPath: './alipay.jpeg', // 修改回您原始設定的 .jpeg 副檔名
                         info: <p className="mt-2 text-[#00A0E9] font-bold">請打開支付寶 HK 掃描付款</p> 
                     },
                     'WeChat Pay': { 
                         color: 'border-[#1AAD19]/20 bg-[#1AAD19]/5', 
                         textCol: 'text-[#1AAD19]', 
-                        imgPath: './wechat.png', 
+                        imgPath: './wechat.jpeg', // 修改回您原始設定的 .jpeg 副檔名
                         info: <p className="mt-2 text-[#1AAD19] font-bold">請打開微信掃一掃付款</p> 
                     }
                 };
@@ -267,7 +267,7 @@
                                     src={currentInfo.imgPath} 
                                     alt={`${method} QR`} 
                                     className="w-48 h-48 object-contain mx-auto"
-                                    onError={(e) => { e.target.style.display='none'; e.target.insertAdjacentHTML('afterend', '<span class="text-xs text-red-500">無法載入圖片，請檢查 Github 檔案名稱</span>'); }} 
+                                    onError={(e) => { e.target.style.display='none'; e.target.insertAdjacentHTML('afterend', '<span class="text-xs text-red-500">無法載入圖片，請確認 GitHub 目錄中有 ' + currentInfo.imgPath + '</span>'); }} 
                                 />
                             </div>
                         )}
@@ -611,7 +611,6 @@
                                 </p>
                                 
                                 <div className="space-y-4 mb-8">
-                                    {/* WhatsApp 專屬按鈕 */}
                                     <a href={orderLinks.whatsappUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full py-4 bg-[#25D366] text-white font-black rounded-xl hover:opacity-90 transition-opacity shadow-md">
                                         <span className="mr-2 text-xl">🟢</span> 確認發送 WhatsApp
                                     </a>

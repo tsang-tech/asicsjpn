@@ -11,11 +11,9 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 引入 Lucide 圖示 -->
-    <script src="https://unpkg.com/lucide@latest"></script>
     
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f9f9f9; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #FAFAFA; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
@@ -36,13 +34,21 @@
         const { useState, useEffect, useMemo } = React;
         const ITEMS_PER_PAGE = 50;
 
+        // --- SVG 圖示組件 (取代會導致崩潰的 Lucide CDN) ---
+        const IconShoppingBag = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>);
+        const IconSearch = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>);
+        const IconChevronRight = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>);
+        const IconX = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>);
+        const IconTrash2 = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>);
+        const IconArrowLeft = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>);
+        const IconCheck = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>);
+
         const MOCK_DATA = [
             { "brand": "JORDAN", "name": "Retro High OG 'Royal Reimagined'", "original_price": 1599, "my_price": 1159, "image": "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=400&h=533&fit=crop", "sizes": ["8", "8.5", "9", "9.5", "10", "10.5", "11"], "status": "AVAILABLE" },
             { "brand": "STUSSY", "name": "Basic Stussy Logo Tee", "original_price": 450, "my_price": 320, "image": "https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=400&h=533&fit=crop", "sizes": ["S", "M", "L", "XL"], "status": "AVAILABLE" },
             { "brand": "NIKE", "name": "Air Force 1 '07 Premium", "original_price": 899, "my_price": 699, "image": "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400&h=533&fit=crop", "sizes": ["7", "7.5", "8", "8.5", "9"], "status": "AVAILABLE" }
         ];
 
-        // 格式化尺碼顯示 (自動加上 US Size)
         const formatSize = (size) => {
             if (!size) return '';
             const trimmedSize = String(size).trim();
@@ -67,7 +73,6 @@
             const [selectedProduct, setSelectedProduct] = useState(null);
             const [selectedSize, setSelectedSize] = useState(null); 
 
-            // 遊客收貨與結帳資料
             const [orderData, setOrderData] = useState({
                 name: '',
                 phone: '',
@@ -76,8 +81,6 @@
             });
             const [checkoutErrors, setCheckoutErrors] = useState({});
             const [orderLinks, setOrderLinks] = useState({ whatsappUrl: '', messengerUrl: '', orderDetails: '' });
-            
-            // 新增：處理中狀態（防連點）
             const [isSubmitting, setIsSubmitting] = useState(false);
 
             useEffect(() => {
@@ -98,10 +101,6 @@
                 };
                 fetchData();
             }, []);
-
-            useEffect(() => {
-                if (window.lucide) window.lucide.createIcons();
-            });
 
             const brands = useMemo(() => {
                 const counts = {};
@@ -163,7 +162,6 @@
                 setActiveModal('checkoutPayment');
             };
 
-            // 產生最終訂單連結並傳送資料至 Google Apps Script
             const generateFinalOrder = async () => {
                 setIsSubmitting(true);
 
@@ -182,7 +180,6 @@
                 });
                 orderText += `------------------\n💰 *總金額: HK$ ${cartTotal}*`;
 
-                // ==== 1. 將訂單資料傳送到 Google Apps Script Webhook ====
                 const webhookUrl = "https://script.google.com/macros/s/AKfycbwFjqR5gcH2aBn6AFzOKrCffo3hGcQg19N5ALW0oCKeUJLQTPltj7HWPIOdv_ZhvxMV/exec";
                 const payload = {
                     name: orderData.name,
@@ -194,29 +191,58 @@
                     orderTime: new Date().toLocaleString('zh-HK')
                 };
 
-                try {
-                    await fetch(webhookUrl, {
-                        method: 'POST',
-                        mode: 'no-cors', // 解決瀏覽器跨網域 CORS 問題，Google Apps Script 必備
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload)
-                    });
-                    console.log("訂單已成功傳送至 Google 系統");
-                } catch (error) {
-                    console.error("傳送訂單至 Google 系統失敗:", error);
-                    // 即使失敗也繼續執行，不阻礙客人下單的畫面跳轉
-                }
-
-                // ==== 2. 準備跳轉的 WhatsApp 及 Messenger 連結 ====
                 const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(orderText)}`;
                 const messengerUrl = `https://m.me/${pageId}`;
-                
                 setOrderLinks({ whatsappUrl, messengerUrl, orderDetails: orderText });
-                
+
+                try {
+                    // 非同步發送資料到 Google Sheet，不阻塞畫面跳轉
+                    await fetch(webhookUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                } catch (error) {
+                    console.error("Fetch Error:", error);
+                }
+
                 setIsSubmitting(false);
                 setActiveModal('orderComplete');
+            };
+
+            // 處理 Messenger 複製與跳轉
+            const handleMessengerClick = () => {
+                const textToCopy = orderLinks.orderDetails;
+                
+                const openMessenger = () => {
+                    window.open(orderLinks.messengerUrl, '_blank');
+                };
+
+                const fallbackCopy = () => {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = textToCopy;
+                    textArea.style.position = "fixed";
+                    textArea.style.left = "-999999px";
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                    } catch (err) {
+                        console.error('Fallback copy failed', err);
+                    }
+                    document.body.removeChild(textArea);
+                    openMessenger();
+                };
+
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(textToCopy).then(() => {
+                        openMessenger();
+                    }).catch(() => fallbackCopy());
+                } else {
+                    fallbackCopy();
+                }
             };
 
             const renderPaymentDetails = (method) => {
@@ -279,7 +305,7 @@
 
             if (isLoading) {
                 return (
-                    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f9f9f9]">
+                    <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAFAFA]">
                         <div className="w-10 h-10 border-4 border-neutral-200 border-t-black rounded-full animate-spin mb-4"></div>
                         <p className="text-[10px] font-black uppercase tracking-[0.3em]">載入庫存中...</p>
                     </div>
@@ -287,7 +313,7 @@
             }
 
             return (
-                <div className="min-h-screen bg-[#f9f9f9] text-[#1a1a1a] font-sans selection:bg-black selection:text-white">
+                <div className="min-h-screen bg-[#FAFAFA] text-[#1a1a1a] font-sans selection:bg-black selection:text-white">
                     <div className="bg-black text-white py-2 overflow-hidden whitespace-nowrap">
                         <div className="animate-marquee text-[10px] font-bold tracking-[0.2em] uppercase">
                             &nbsp; GLOBAL SHIPPING • 100% AUTHENTIC GUARANTEED • DIRECT FROM EUROPEAN BOUTIQUES • NEW ITEMS ADDED DAILY • GLOBAL SHIPPING • &nbsp;
@@ -299,7 +325,7 @@
                             <h1 className="text-2xl font-black italic tracking-tighter cursor-pointer" onClick={() => { setSelectedBrand('All'); setSearchQuery(''); }}>EXCLSV_SELECT</h1>
                             <div className="flex items-center gap-6">
                                 <button onClick={() => setActiveModal('cart')} className="relative cursor-pointer hover:opacity-70 transition-opacity flex items-center gap-2">
-                                    <i data-lucide="shopping-bag" className="w-6 h-6"></i>
+                                    <IconShoppingBag className="w-6 h-6" />
                                     {cart.length > 0 && <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-sm">{cart.reduce((a, b) => a + b.quantity, 0)}</span>}
                                 </button>
                             </div>
@@ -310,7 +336,7 @@
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 bg-white p-4 rounded-xl shadow-sm border border-neutral-100">
                             <div className="relative w-full md:w-96">
                                 <input type="text" placeholder="搜尋品牌或單品..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2.5 text-sm font-bold border border-neutral-200 rounded-lg focus:outline-none focus:border-black transition-all bg-[#f9f9f9]"/>
-                                <i data-lucide="search" className="absolute left-3.5 top-3 text-neutral-400 w-4 h-4"></i>
+                                <IconSearch className="absolute left-3.5 top-3 text-neutral-400 w-4 h-4" />
                             </div>
                         </div>
 
@@ -349,7 +375,7 @@
                                                 ) : <span className="text-[9px] text-neutral-400 italic">One Size</span>}
                                             </div>
                                             <button onClick={() => openProductDetail(p)} className="text-[10px] text-[#0084FF] font-bold mt-1.5 hover:underline flex items-center gap-1">
-                                                查看詳情選擇尺碼 <i data-lucide="chevron-right" className="w-3 h-3"></i>
+                                                查看詳情選擇尺碼 <IconChevronRight className="w-3 h-3" />
                                             </button>
                                         </div>
 
@@ -372,13 +398,13 @@
                         <p className="text-[9px] text-neutral-500 uppercase tracking-[0.4em]">© 2024 ALL RIGHTS RESERVED</p>
                     </footer>
 
-                    {/* Modal 1: 商品詳情 (包含尺碼點擊選擇) */}
+                    {/* Modal 1: 商品詳情 */}
                     {activeModal === 'productDetail' && selectedProduct && (
                         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
                             <div className="bg-white rounded-2xl max-w-3xl w-full flex flex-col md:flex-row overflow-hidden shadow-2xl fade-in max-h-[90vh]">
                                 <div className="w-full md:w-1/2 bg-[#f4f4f4] relative">
                                     <button onClick={() => setActiveModal(null)} className="absolute top-4 left-4 p-2 bg-white/80 rounded-full md:hidden z-10 shadow-sm">
-                                        <i data-lucide="x" className="w-5 h-5"></i>
+                                        <IconX className="w-5 h-5" />
                                     </button>
                                     <img src={selectedProduct.image} className="w-full h-64 md:h-full object-cover" />
                                 </div>
@@ -386,7 +412,7 @@
                                     <div className="flex justify-between items-start mb-2">
                                         <p className="text-xs font-black text-neutral-400 uppercase tracking-widest">{selectedProduct.brand}</p>
                                         <button onClick={() => setActiveModal(null)} className="hidden md:block text-neutral-400 hover:text-black">
-                                            <i data-lucide="x" className="w-6 h-6"></i>
+                                            <IconX className="w-6 h-6" />
                                         </button>
                                     </div>
                                     <h2 className="text-2xl font-black leading-tight mb-4">{selectedProduct.name}</h2>
@@ -452,7 +478,7 @@
                             <div className="w-full max-w-md bg-white h-full shadow-2xl p-6 flex flex-col fade-in relative">
                                 <div className="flex justify-between items-center mb-6 border-b pb-4">
                                     <h2 className="text-2xl font-black italic">MY BAG</h2>
-                                    <button onClick={() => setActiveModal(null)} className="p-2"><i data-lucide="x"></i></button>
+                                    <button onClick={() => setActiveModal(null)} className="p-2"><IconX className="w-6 h-6" /></button>
                                 </div>
                                 <div className="flex-grow overflow-y-auto space-y-6 pr-2">
                                     {cart.map(item => (
@@ -467,7 +493,7 @@
                                                     <p className="font-black">HK$ {item.my_price * item.quantity}</p>
                                                 </div>
                                             </div>
-                                            <button onClick={() => removeFromCart(item.cartItemId)} className="text-neutral-300 hover:text-red-500"><i data-lucide="trash-2" className="w-4 h-4"></i></button>
+                                            <button onClick={() => removeFromCart(item.cartItemId)} className="text-neutral-300 hover:text-red-500"><IconTrash2 className="w-5 h-5" /></button>
                                         </div>
                                     ))}
                                     {cart.length === 0 && <p className="text-center text-neutral-400 mt-20 font-bold">購物車是空的</p>}
@@ -490,7 +516,7 @@
                         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md overflow-y-auto">
                             <div className="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl fade-in relative my-auto">
                                 <button onClick={() => setActiveModal(cart.length > 0 ? 'cart' : null)} className="absolute top-4 right-4 text-neutral-400 hover:text-black">
-                                    <i data-lucide="x" className="w-5 h-5"></i>
+                                    <IconX className="w-5 h-5" />
                                 </button>
                                 <h2 className="text-2xl font-black italic mb-2 text-center">填寫收貨資料</h2>
                                 <p className="text-center text-xs text-neutral-500 font-bold mb-6">我們需要您的聯絡方式以便安排發貨</p>
@@ -548,10 +574,10 @@
                         <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md overflow-y-auto">
                             <div className="bg-white rounded-2xl w-full max-w-md p-6 md:p-8 shadow-2xl fade-in relative my-auto">
                                 <button onClick={() => setActiveModal('checkoutInfo')} className="absolute top-4 left-4 text-neutral-400 hover:text-black bg-white/80 p-1 rounded-full z-10" disabled={isSubmitting}>
-                                    <i data-lucide="arrow-left" className="w-5 h-5"></i>
+                                    <IconArrowLeft className="w-5 h-5" />
                                 </button>
                                 <button onClick={() => setActiveModal(null)} className="absolute top-4 right-4 text-neutral-400 hover:text-black bg-white/80 p-1 rounded-full z-10" disabled={isSubmitting}>
-                                    <i data-lucide="x" className="w-5 h-5"></i>
+                                    <IconX className="w-5 h-5" />
                                 </button>
                                 
                                 <h2 className="text-2xl font-black italic mb-2 text-center mt-2">PAYMENT</h2>
@@ -594,7 +620,7 @@
                                         {isSubmitting ? (
                                             <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> 處理中...</>
                                         ) : (
-                                            <>已付款，確認並發送訂單 <i data-lucide="check" className="w-5 h-5"></i></>
+                                            <>已付款，確認並發送訂單 <IconCheck className="w-5 h-5" /></>
                                         )}
                                     </button>
                                 </div>
@@ -602,28 +628,34 @@
                         </div>
                     )}
 
-                    {/* Modal 5: 訂單完成 */}
+                    {/* Modal 5: 訂單完成 (完美結合您提供的按鈕設計) */}
                     {activeModal === 'orderComplete' && (
                         <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md">
                             <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl fade-in relative">
-                                <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <i data-lucide="send" className="w-8 h-8 text-black"></i>
-                                </div>
                                 <h2 className="text-2xl font-black italic tracking-tighter mb-2 uppercase">最後一步</h2>
                                 <p className="text-neutral-500 text-xs font-bold leading-relaxed mb-6 px-2">
                                     您已選擇 <strong>{orderData.paymentMethod}</strong>。<br/>請點擊下方按鈕將您的購物明細發送給客服進行最終確認。
                                 </p>
                                 
                                 <div className="space-y-3 mb-6">
-                                    <a href={orderLinks.whatsappUrl} target="_blank" className="flex items-center justify-center w-full py-3.5 bg-[#25D366] text-white font-black rounded-xl hover:opacity-90 transition-opacity text-sm shadow-sm">
-                                        發送至 WhatsApp
+                                    {/* WhatsApp 按鈕 */}
+                                    <a href={orderLinks.whatsappUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full py-4 bg-[#25D366] text-white font-black rounded-xl hover:opacity-90 transition-opacity shadow-md">
+                                        <span className="mr-2 text-xl">🟢</span> 確認發送 WhatsApp
                                     </a>
-                                    <a href={orderLinks.messengerUrl} target="_blank" className="flex items-center justify-center w-full py-3.5 bg-[#0084FF] text-white font-black rounded-xl hover:opacity-90 transition-opacity text-sm shadow-sm">
-                                        前往 Messenger
+                                    
+                                    {/* Messenger 按鈕 */}
+                                    <button onClick={handleMessengerClick} className="w-full py-4 bg-[#0084FF] text-white font-black rounded-xl shadow-md hover:opacity-90 transition-opacity">
+                                        <span className="mr-2 text-xl">💬</span> 複製訂單並前往 Messenger
+                                    </button>
+                                    
+                                    {/* Messenger 隱藏連結，讓使用者點擊複製後手動跳轉（作為備用） */}
+                                    <a href={orderLinks.messengerUrl} target="_blank" rel="noopener noreferrer" className="block text-xs font-bold text-[#0084FF] mt-2 underline">
+                                        👉 如果沒有自動跳轉，請點此手動打開 Messenger
                                     </a>
                                 </div>
-                                <button onClick={() => { setActiveModal(null); setCart([]); }} className="text-xs font-bold text-neutral-400 underline hover:text-black">
-                                    完成並返回首頁
+
+                                <button onClick={() => { setActiveModal(null); setCart([]); }} className="text-sm font-bold text-neutral-400 hover:text-black underline">
+                                    返回首頁繼續選購
                                 </button>
                             </div>
                         </div>

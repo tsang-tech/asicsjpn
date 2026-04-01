@@ -46,10 +46,7 @@
         const formatSize = (size) => {
             if (!size) return '';
             const trimmedSize = String(size).trim();
-            // 如果已經有 US 就直接回傳
             if (trimmedSize.toUpperCase().includes('US')) return trimmedSize;
-            
-            // 如果是純數字或帶小數點的數字，自動加上 US Size
             if (!isNaN(trimmedSize) && !isNaN(parseFloat(trimmedSize))) {
                 return `US Size ${trimmedSize}`;
             }
@@ -66,7 +63,6 @@
             const [currentPage, setCurrentPage] = useState(1);
 
             const [cart, setCart] = useState([]);
-            // Modal 狀態: null, 'cart', 'productDetail', 'checkoutInfo', 'checkoutPayment', 'orderComplete'
             const [activeModal, setActiveModal] = useState(null); 
             const [selectedProduct, setSelectedProduct] = useState(null);
             const [selectedSize, setSelectedSize] = useState(null); 
@@ -80,6 +76,9 @@
             });
             const [checkoutErrors, setCheckoutErrors] = useState({});
             const [orderLinks, setOrderLinks] = useState({ whatsappUrl: '', messengerUrl: '', orderDetails: '' });
+            
+            // 新增：處理中狀態（防連點）
+            const [isSubmitting, setIsSubmitting] = useState(false);
 
             useEffect(() => {
                 const fetchData = async () => {
@@ -150,7 +149,6 @@
                 setActiveModal('productDetail');
             };
 
-            // 驗證收貨資料並進入下一步
             const validateAndProceed = () => {
                 const errors = {};
                 if (!orderData.name.trim()) errors.name = '請輸入姓名';
@@ -165,8 +163,10 @@
                 setActiveModal('checkoutPayment');
             };
 
-            // 產生最終訂單連結
-            const generateFinalOrder = () => {
+            // 產生最終訂單連結並傳送資料至 Google Apps Script
+            const generateFinalOrder = async () => {
+                setIsSubmitting(true);
+
                 const phoneNumber = "85265215017";
                 const pageId = "104976785186000"; 
                 
@@ -182,24 +182,51 @@
                 });
                 orderText += `------------------\n💰 *總金額: HK$ ${cartTotal}*`;
 
+                // ==== 1. 將訂單資料傳送到 Google Apps Script Webhook ====
+                const webhookUrl = "https://script.google.com/macros/s/AKfycbwFjqR5gcH2aBn6AFzOKrCffo3hGcQg19N5ALW0oCKeUJLQTPltj7HWPIOdv_ZhvxMV/exec";
+                const payload = {
+                    name: orderData.name,
+                    phone: orderData.phone,
+                    address: orderData.address,
+                    paymentMethod: orderData.paymentMethod,
+                    totalAmount: cartTotal,
+                    orderDetails: orderText,
+                    orderTime: new Date().toLocaleString('zh-HK')
+                };
+
+                try {
+                    await fetch(webhookUrl, {
+                        method: 'POST',
+                        mode: 'no-cors', // 解決瀏覽器跨網域 CORS 問題，Google Apps Script 必備
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                    console.log("訂單已成功傳送至 Google 系統");
+                } catch (error) {
+                    console.error("傳送訂單至 Google 系統失敗:", error);
+                    // 即使失敗也繼續執行，不阻礙客人下單的畫面跳轉
+                }
+
+                // ==== 2. 準備跳轉的 WhatsApp 及 Messenger 連結 ====
                 const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(orderText)}`;
                 const messengerUrl = `https://m.me/${pageId}`;
                 
                 setOrderLinks({ whatsappUrl, messengerUrl, orderDetails: orderText });
+                
+                setIsSubmitting(false);
                 setActiveModal('orderComplete');
             };
 
-            // 渲染付款詳細資訊 (QR Code 或轉數快資訊)
             const renderPaymentDetails = (method) => {
                 if (orderData.paymentMethod !== method) return null;
                 
-                // 這裡設定各支付方式的圖片路徑，預設指向 Github Pages 同目錄下的圖片
-                // 若您的圖片名稱不同，請在此修改 'imgPath' 的值
                 const paymentInfo = {
                     '轉數快 (FPS)': { 
                         color: 'border-purple-200 bg-purple-50', 
                         textCol: 'text-purple-700', 
-                        imgPath: null, // FPS 不需要顯示 QR Code
+                        imgPath: null, 
                         info: (
                             <div className="mt-2 text-left bg-white p-3 rounded-lg border border-purple-100">
                                 <p className="text-neutral-600 mb-1">FPS ID (識別碼): <strong className="text-black text-base select-all tracking-wider">127569788</strong></p>
@@ -211,19 +238,19 @@
                     'PayMe': { 
                         color: 'border-[#E51937]/20 bg-[#E51937]/5', 
                         textCol: 'text-[#E51937]', 
-                        imgPath: './payme.png', // <--- PayMe QR Code 圖片路徑
+                        imgPath: './payme.png', 
                         info: <p className="mt-2 text-[#E51937] font-bold">請掃描上方 PayMe QR Code 進行付款</p> 
                     },
                     '支付寶 (AlipayHK)': { 
                         color: 'border-[#00A0E9]/20 bg-[#00A0E9]/5', 
                         textCol: 'text-[#00A0E9]', 
-                        imgPath: './alipay.png', // <--- 支付寶 QR Code 圖片路徑
+                        imgPath: './alipay.png', 
                         info: <p className="mt-2 text-[#00A0E9] font-bold">請打開支付寶 HK 掃描付款</p> 
                     },
                     'WeChat Pay': { 
                         color: 'border-[#1AAD19]/20 bg-[#1AAD19]/5', 
                         textCol: 'text-[#1AAD19]', 
-                        imgPath: './wechat.png', // <--- WeChat Pay QR Code 圖片路徑
+                        imgPath: './wechat.png', 
                         info: <p className="mt-2 text-[#1AAD19] font-bold">請打開微信掃一掃付款</p> 
                     }
                 };
@@ -235,7 +262,6 @@
                     <div className={`mt-3 p-4 rounded-xl border ${currentInfo.color} text-sm text-center slide-down`}>
                         <p className={`font-black mb-3 ${currentInfo.textCol}`}>{method} 收款資訊</p>
                         
-                        {/* 只有在有設定 imgPath 時才顯示圖片 (FPS 就會跳過這裡) */}
                         {currentInfo.imgPath && (
                             <div className="bg-white p-2 rounded-xl inline-block shadow-sm mb-2 border border-neutral-100">
                                 <img 
@@ -459,7 +485,7 @@
                         </div>
                     )}
 
-                    {/* Modal 3: 遊客結帳資料填寫 (checkoutInfo) */}
+                    {/* Modal 3: 遊客結帳資料填寫 */}
                     {activeModal === 'checkoutInfo' && (
                         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md overflow-y-auto">
                             <div className="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl fade-in relative my-auto">
@@ -517,14 +543,14 @@
                         </div>
                     )}
 
-                    {/* Modal 4: 選擇付款方式 (Payment) */}
+                    {/* Modal 4: 選擇付款方式 */}
                     {activeModal === 'checkoutPayment' && (
                         <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md overflow-y-auto">
                             <div className="bg-white rounded-2xl w-full max-w-md p-6 md:p-8 shadow-2xl fade-in relative my-auto">
-                                <button onClick={() => setActiveModal('checkoutInfo')} className="absolute top-4 left-4 text-neutral-400 hover:text-black bg-white/80 p-1 rounded-full z-10">
+                                <button onClick={() => setActiveModal('checkoutInfo')} className="absolute top-4 left-4 text-neutral-400 hover:text-black bg-white/80 p-1 rounded-full z-10" disabled={isSubmitting}>
                                     <i data-lucide="arrow-left" className="w-5 h-5"></i>
                                 </button>
-                                <button onClick={() => setActiveModal(null)} className="absolute top-4 right-4 text-neutral-400 hover:text-black bg-white/80 p-1 rounded-full z-10">
+                                <button onClick={() => setActiveModal(null)} className="absolute top-4 right-4 text-neutral-400 hover:text-black bg-white/80 p-1 rounded-full z-10" disabled={isSubmitting}>
                                     <i data-lucide="x" className="w-5 h-5"></i>
                                 </button>
                                 
@@ -540,6 +566,7 @@
                                                     className="payment-radio absolute opacity-0"
                                                     checked={orderData.paymentMethod === method}
                                                     onChange={(e) => setOrderData({...orderData, paymentMethod: e.target.value})}
+                                                    disabled={isSubmitting}
                                                 />
                                                 <div className="border-2 border-neutral-100 rounded-xl p-4 flex items-center justify-between transition-all hover:border-neutral-300">
                                                     <span className="font-bold text-sm">{method}</span>
@@ -548,8 +575,6 @@
                                                     </div>
                                                 </div>
                                             </label>
-                                            
-                                            {/* 動態渲染該支付方式的 QR Code 與資料 */}
                                             {renderPaymentDetails(method)}
                                         </div>
                                     ))}
@@ -562,9 +587,15 @@
                                     </div>
                                     <button 
                                         onClick={generateFinalOrder}
-                                        className="w-full bg-black text-white font-black italic py-4 rounded-xl shadow-lg flex justify-center items-center gap-2 hover:scale-[1.02] active:scale-95 transition-transform"
+                                        disabled={isSubmitting}
+                                        className={`w-full text-white font-black italic py-4 rounded-xl shadow-lg flex justify-center items-center gap-2 transition-transform 
+                                            ${isSubmitting ? 'bg-neutral-400 cursor-not-allowed' : 'bg-black hover:scale-[1.02] active:scale-95'}`}
                                     >
-                                        已付款，確認並發送訂單 <i data-lucide="check" className="w-5 h-5"></i>
+                                        {isSubmitting ? (
+                                            <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> 處理中...</>
+                                        ) : (
+                                            <>已付款，確認並發送訂單 <i data-lucide="check" className="w-5 h-5"></i></>
+                                        )}
                                     </button>
                                 </div>
                             </div>

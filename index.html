@@ -32,7 +32,7 @@
 
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
-        const ITEMS_PER_PAGE = 50; // 每頁顯示 50 件
+        const ITEMS_PER_PAGE = 50; 
 
         // --- SVG 圖示組件 ---
         const IconShoppingBag = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>);
@@ -44,10 +44,169 @@
         const IconCheck = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>);
         const IconRuler = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.3 15.3l-2.6-2.6a1 1 0 0 0-1.4 0l-12 12a1 1 0 0 0 0 1.4l2.6 2.6a1 1 0 0 0 1.4 0l12-12a1 1 0 0 0 0-1.4z"/><path d="M14.5 5.5l4 4"/><path d="M10.5 9.5l4 4"/><path d="M6.5 13.5l4 4"/></svg>);
 
+        // --- 品牌專屬尺碼資料庫 ---
+        const SIZE_GUIDES = {
+            'NIKE': {
+                title: 'NIKE',
+                shoes: [
+                    { us: '7', uk: '6', eu: '40', cm: '25' },
+                    { us: '7.5', uk: '6.5', eu: '40.5', cm: '25.5' },
+                    { us: '8', uk: '7', eu: '41', cm: '26' },
+                    { us: '8.5', uk: '7.5', eu: '42', cm: '26.5' },
+                    { us: '9', uk: '8', eu: '42.5', cm: '27' },
+                    { us: '9.5', uk: '8.5', eu: '43', cm: '27.5' },
+                    { us: '10', uk: '9', eu: '44', cm: '28' },
+                    { us: '10.5', uk: '9.5', eu: '44.5', cm: '28.5' },
+                    { us: '11', uk: '10', eu: '45', cm: '29' }
+                ],
+                apparel: [
+                    { size: 'S', chest: '88-96', waist: '73-81' },
+                    { size: 'M', chest: '96-104', waist: '81-89' },
+                    { size: 'L', chest: '104-112', waist: '89-97' },
+                    { size: 'XL', chest: '112-124', waist: '97-109' }
+                ],
+                note: "* Nike 官方標準尺碼。鞋款版型正常，如腳板較寬（如 Dunk 或 AF1）可考慮原碼或大半號。"
+            },
+            'JORDAN': {
+                title: 'JORDAN',
+                shoes: [
+                    { us: '7', uk: '6', eu: '40', cm: '25' },
+                    { us: '7.5', uk: '6.5', eu: '40.5', cm: '25.5' },
+                    { us: '8', uk: '7', eu: '41', cm: '26' },
+                    { us: '8.5', uk: '7.5', eu: '42', cm: '26.5' },
+                    { us: '9', uk: '8', eu: '42.5', cm: '27' },
+                    { us: '9.5', uk: '8.5', eu: '43', cm: '27.5' },
+                    { us: '10', uk: '9', eu: '44', cm: '28' },
+                    { us: '10.5', uk: '9.5', eu: '44.5', cm: '28.5' },
+                    { us: '11', uk: '10', eu: '45', cm: '29' }
+                ],
+                apparel: [
+                    { size: 'S', chest: '88-96', waist: '73-81' },
+                    { size: 'M', chest: '96-104', waist: '81-89' },
+                    { size: 'L', chest: '104-112', waist: '89-97' },
+                    { size: 'XL', chest: '112-124', waist: '97-109' }
+                ],
+                note: "* Jordan 鞋款（如 AJ1, AJ4）部分版型偏窄，建議腳寬者大半號。"
+            },
+            'ADIDAS': {
+                title: 'ADIDAS',
+                shoes: [
+                    { us: '7', uk: '6.5', eu: '40', cm: '25' },
+                    { us: '7.5', uk: '7', eu: '40 2/3', cm: '25.5' },
+                    { us: '8', uk: '7.5', eu: '41 1/3', cm: '26' },
+                    { us: '8.5', uk: '8', eu: '42', cm: '26.5' },
+                    { us: '9', uk: '8.5', eu: '42 2/3', cm: '27' },
+                    { us: '9.5', uk: '9', eu: '43 1/3', cm: '27.5' },
+                    { us: '10', uk: '9.5', eu: '44', cm: '28' },
+                    { us: '10.5', uk: '10', eu: '44 2/3', cm: '28.5' },
+                    { us: '11', uk: '10.5', eu: '45 1/3', cm: '29' }
+                ],
+                note: "* Adidas 標準尺碼。Yeezy 系列版型普遍偏小，強烈建議大半號至一號。"
+            },
+            'YEEZY': {
+                title: 'YEEZY',
+                shoes: [
+                    { us: '7', uk: '6.5', eu: '40', cm: '25' },
+                    { us: '7.5', uk: '7', eu: '40 2/3', cm: '25.5' },
+                    { us: '8', uk: '7.5', eu: '41 1/3', cm: '26' },
+                    { us: '8.5', uk: '8', eu: '42', cm: '26.5' },
+                    { us: '9', uk: '8.5', eu: '42 2/3', cm: '27' },
+                    { us: '9.5', uk: '9', eu: '43 1/3', cm: '27.5' },
+                    { us: '10', uk: '9.5', eu: '44', cm: '28' },
+                    { us: '10.5', uk: '10', eu: '44 2/3', cm: '28.5' },
+                    { us: '11', uk: '10.5', eu: '45 1/3', cm: '29' }
+                ],
+                note: "* Yeezy 系列（如 350, Slide, Foam Runner）版型普遍偏小，強烈建議大半號至一號。"
+            },
+            'NEW BALANCE': {
+                title: 'NEW BALANCE',
+                shoes: [
+                    { us: '7', uk: '6.5', eu: '40', cm: '25' },
+                    { us: '7.5', uk: '7', eu: '40.5', cm: '25.5' },
+                    { us: '8', uk: '7.5', eu: '41.5', cm: '26' },
+                    { us: '8.5', uk: '8', eu: '42', cm: '26.5' },
+                    { us: '9', uk: '8.5', eu: '42.5', cm: '27' },
+                    { us: '9.5', uk: '9', eu: '43', cm: '27.5' },
+                    { us: '10', uk: '9.5', eu: '44', cm: '28' },
+                    { us: '10.5', uk: '10', eu: '44.5', cm: '28.5' },
+                    { us: '11', uk: '10.5', eu: '45', cm: '29' }
+                ],
+                note: "* NB 亞洲版 (D楦) 正常拿，部分美製/英製款式（如 990系列）偏長，腳瘦者可考慮小半號。"
+            },
+            'CONVERSE': {
+                title: 'CONVERSE',
+                shoes: [
+                    { us: '7', uk: '7', eu: '40', cm: '25.5' },
+                    { us: '7.5', uk: '7.5', eu: '41', cm: '26' },
+                    { us: '8', uk: '8', eu: '41.5', cm: '26.5' },
+                    { us: '8.5', uk: '8.5', eu: '42', cm: '27' },
+                    { us: '9', uk: '9', eu: '42.5', cm: '27.5' },
+                    { us: '9.5', uk: '9.5', eu: '43', cm: '28' },
+                    { us: '10', uk: '10', eu: '44', cm: '28.5' }
+                ],
+                note: "* Converse 1970s / Chuck Taylor 版型偏大，建議拿小半號。"
+            },
+            'STUSSY': {
+                title: 'STUSSY',
+                apparel: [
+                    { size: 'S', chest: '112', length: '71' },
+                    { size: 'M', chest: '117', length: '74' },
+                    { size: 'L', chest: '122', length: '76' },
+                    { size: 'XL', chest: '127', length: '79' }
+                ],
+                note: "* Stussy 服飾版型偏大 (Oversized fit)，建議比平常亞洲碼拿小一號。"
+            },
+            'ESSENTIALS': {
+                title: 'ESSENTIALS',
+                apparel: [
+                    { size: 'XXS', chest: '116', length: '68' },
+                    { size: 'XS', chest: '122', length: '70' },
+                    { size: 'S', chest: '128', length: '72' },
+                    { size: 'M', chest: '134', length: '74' },
+                    { size: 'L', chest: '140', length: '76' }
+                ],
+                note: "* ESSENTIALS 為極度寬鬆剪裁 (Extremely Oversized)，強烈建議拿小一號至兩號。"
+            },
+            'SUPREME': {
+                title: 'SUPREME',
+                apparel: [
+                    { size: 'S', chest: '110', length: '70' },
+                    { size: 'M', chest: '116', length: '73' },
+                    { size: 'L', chest: '122', length: '76' },
+                    { size: 'XL', chest: '128', length: '79' }
+                ],
+                note: "* Supreme 美版偏大，短袖及衛衣建議拿小一號。"
+            },
+            'DEFAULT': {
+                title: 'STANDARD',
+                shoes: [
+                    { us: '7', uk: '6', eu: '40', cm: '25' },
+                    { us: '7.5', uk: '6.5', eu: '40.5', cm: '25.5' },
+                    { us: '8', uk: '7', eu: '41', cm: '26' },
+                    { us: '8.5', uk: '7.5', eu: '42', cm: '26.5' },
+                    { us: '9', uk: '8', eu: '42.5', cm: '27' },
+                    { us: '9.5', uk: '8.5', eu: '43', cm: '27.5' },
+                    { us: '10', uk: '9', eu: '44', cm: '28' },
+                    { us: '10.5', uk: '9.5', eu: '44.5', cm: '28.5' },
+                    { us: '11', uk: '10', eu: '45', cm: '29' }
+                ],
+                apparel: [
+                    { size: 'XS', chest: '80-88', waist: '65-73' },
+                    { size: 'S', chest: '88-96', waist: '73-81' },
+                    { size: 'M', chest: '96-104', waist: '81-89' },
+                    { size: 'L', chest: '104-112', waist: '89-97' },
+                    { size: 'XL', chest: '112-124', waist: '97-109' },
+                    { size: 'XXL', chest: '124-136', waist: '109-121' }
+                ],
+                note: "* 此為國際標準參考尺碼，不同品牌及款式可能略有差異，建議參考實際測量或聯絡客服。"
+            }
+        };
+
         const MOCK_DATA = [
             { "brand": "JORDAN", "name": "Retro High OG 'Royal Reimagined'", "original_price": 1599, "my_price": 1159, "image": "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=400&h=533&fit=crop", "sizes": ["8", "8.5", "9", "9.5", "10", "10.5", "11"], "status": "AVAILABLE" },
             { "brand": "STUSSY", "name": "Basic Stussy Logo Tee", "original_price": 450, "my_price": 320, "image": "https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=400&h=533&fit=crop", "sizes": ["S", "M", "L", "XL"], "status": "AVAILABLE" },
-            { "brand": "NIKE", "name": "Air Force 1 '07 Premium", "original_price": 899, "my_price": 699, "image": "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400&h=533&fit=crop", "sizes": ["7", "7.5", "8", "8.5", "9"], "status": "AVAILABLE" }
+            { "brand": "NIKE", "name": "Air Force 1 '07 Premium", "original_price": 899, "my_price": 699, "image": "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400&h=533&fit=crop", "sizes": ["7", "7.5", "8", "8.5", "9"], "status": "AVAILABLE" },
+            { "brand": "ESSENTIALS", "name": "Fear of God Essentials Hoodie", "original_price": 1299, "my_price": 999, "image": "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400&h=533&fit=crop", "sizes": ["XXS", "XS", "S", "M"], "status": "AVAILABLE" }
         ];
 
         // 強制所有尺碼加上 "US Size" 字樣
@@ -108,7 +267,6 @@
                     const b = p.brand || 'Other';
                     counts[b] = (counts[b] || 0) + 1;
                 });
-                // 將品牌依照 A-Z 順序排列 (localeCompare 實現字母排序)
                 const sortedBrands = Object.keys(counts).sort((a, b) => a.localeCompare(b));
                 return [{ name: 'All', count: products.length }, ...sortedBrands.map(b => ({ name: b, count: counts[b] }))];
             }, [products]);
@@ -125,7 +283,6 @@
                 return result;
             }, [products, selectedBrand, searchQuery, sortOption]);
 
-            // 當篩選條件改變時，自動回到第一頁
             useEffect(() => {
                 setCurrentPage(1);
             }, [selectedBrand, searchQuery, sortOption]);
@@ -157,9 +314,19 @@
             const openProductDetail = (product) => {
                 setSelectedProduct(product);
                 setSelectedSize(null);
-                setShowSizeChart(false); // 重置尺碼表狀態
+                setShowSizeChart(false);
                 setActiveModal('productDetail');
             };
+
+            // 動態取得當前所選產品對應的品牌尺碼表
+            const activeSizeGuide = useMemo(() => {
+                if (!selectedProduct || !selectedProduct.brand) return SIZE_GUIDES['DEFAULT'];
+                const pBrand = selectedProduct.brand.toUpperCase();
+                
+                // 檢查是否有包含在我們的品牌資料庫中
+                const matchKey = Object.keys(SIZE_GUIDES).find(k => pBrand.includes(k) && k !== 'DEFAULT');
+                return matchKey ? SIZE_GUIDES[matchKey] : SIZE_GUIDES['DEFAULT'];
+            }, [selectedProduct]);
 
             const validateAndProceed = () => {
                 const errors = {};
@@ -177,7 +344,6 @@
 
             const generateFinalOrder = async () => {
                 setIsSubmitting(true);
-
                 const phoneNumber = "85251264018";
                 
                 let itemsTextForSheet = "";
@@ -196,7 +362,6 @@
                 orderText += `------------------\n💰 *總金額: HK$ ${cartTotal}*`;
 
                 const orderId = "ORD-" + Date.now().toString().slice(-6);
-
                 const formDataObj = new URLSearchParams();
                 formDataObj.append('orderId', orderId);
                 formDataObj.append('customerName', orderData.name);
@@ -207,7 +372,6 @@
                 formDataObj.append('paymentMethod', orderData.paymentMethod);
 
                 const webhookUrl = "https://script.google.com/macros/s/AKfycbzNh86G8XK1UmlTBCflB0oFhVuXbiFzdi7SRAPtF31WBPAmZ6u89QDZrdVmX4YFwWzj3Q/exec";
-
                 const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(orderText)}`;
                 setOrderLinks({ whatsappUrl, orderDetails: orderText });
 
@@ -215,9 +379,7 @@
                     await fetch(webhookUrl, {
                         method: 'POST',
                         mode: 'no-cors',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        },
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                         body: formDataObj.toString()
                     });
                 } catch (error) {
@@ -230,12 +392,9 @@
 
             const renderPaymentDetails = (method) => {
                 if (orderData.paymentMethod !== method) return null;
-                
                 const paymentInfo = {
                     '轉數快 (FPS)': { 
-                        color: 'border-purple-200 bg-purple-50', 
-                        textCol: 'text-purple-700', 
-                        imgPath: null, 
+                        color: 'border-purple-200 bg-purple-50', textCol: 'text-purple-700', imgPath: null, 
                         info: (
                             <div className="mt-2 text-left bg-white p-3 rounded-lg border border-purple-100">
                                 <p className="text-neutral-600 mb-1">FPS ID (識別碼): <strong className="text-black text-base select-all tracking-wider">127569788</strong></p>
@@ -244,24 +403,9 @@
                             </div>
                         )
                     },
-                    'PayMe': { 
-                        color: 'border-[#E51937]/20 bg-[#E51937]/5', 
-                        textCol: 'text-[#E51937]', 
-                        imgPath: './payme.jpeg',
-                        info: <p className="mt-2 text-[#E51937] font-bold">請掃描上方 PayMe QR Code 進行付款</p> 
-                    },
-                    '支付寶 (AlipayHK)': { 
-                        color: 'border-[#00A0E9]/20 bg-[#00A0E9]/5', 
-                        textCol: 'text-[#00A0E9]', 
-                        imgPath: './alipay.jpeg',
-                        info: <p className="mt-2 text-[#00A0E9] font-bold">請打開支付寶 HK 掃描付款</p> 
-                    },
-                    'WeChat Pay': { 
-                        color: 'border-[#1AAD19]/20 bg-[#1AAD19]/5', 
-                        textCol: 'text-[#1AAD19]', 
-                        imgPath: './wechat.jpeg',
-                        info: <p className="mt-2 text-[#1AAD19] font-bold">請打開微信掃一掃付款</p> 
-                    }
+                    'PayMe': { color: 'border-[#E51937]/20 bg-[#E51937]/5', textCol: 'text-[#E51937]', imgPath: './payme.jpeg', info: <p className="mt-2 text-[#E51937] font-bold">請掃描上方 PayMe QR Code 進行付款</p> },
+                    '支付寶 (AlipayHK)': { color: 'border-[#00A0E9]/20 bg-[#00A0E9]/5', textCol: 'text-[#00A0E9]', imgPath: './alipay.jpeg', info: <p className="mt-2 text-[#00A0E9] font-bold">請打開支付寶 HK 掃描付款</p> },
+                    'WeChat Pay': { color: 'border-[#1AAD19]/20 bg-[#1AAD19]/5', textCol: 'text-[#1AAD19]', imgPath: './wechat.jpeg', info: <p className="mt-2 text-[#1AAD19] font-bold">請打開微信掃一掃付款</p> }
                 };
 
                 const currentInfo = paymentInfo[method];
@@ -270,15 +414,9 @@
                 return (
                     <div className={`mt-3 p-4 rounded-xl border ${currentInfo.color} text-sm text-center slide-down`}>
                         <p className={`font-black mb-3 ${currentInfo.textCol}`}>{method} 收款資訊</p>
-                        
                         {currentInfo.imgPath && (
                             <div className="bg-white p-2 rounded-xl inline-block shadow-sm mb-2 border border-neutral-100">
-                                <img 
-                                    src={currentInfo.imgPath} 
-                                    alt={`${method} QR`} 
-                                    className="w-48 h-48 object-contain mx-auto"
-                                    onError={(e) => { e.target.style.display='none'; e.target.insertAdjacentHTML('afterend', '<span class="text-xs text-red-500">無法載入圖片</span>'); }} 
-                                />
+                                <img src={currentInfo.imgPath} alt={`${method} QR`} className="w-48 h-48 object-contain mx-auto" onError={(e) => { e.target.style.display='none'; e.target.insertAdjacentHTML('afterend', '<span class="text-xs text-red-500">無法載入圖片</span>'); }} />
                             </div>
                         )}
                         {currentInfo.info}
@@ -316,51 +454,30 @@
                     </nav>
 
                     <main className="max-w-7xl mx-auto py-8 px-4">
-                        
-                        {/* 頂部搜尋列與下拉式品牌選擇器 */}
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 bg-white p-4 rounded-xl shadow-sm border border-neutral-100">
-                            
                             <div className="relative w-full md:flex-1 md:max-w-md">
                                 <input type="text" placeholder="搜尋品牌或單品..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-3 text-sm font-bold border border-neutral-200 rounded-lg focus:outline-none focus:border-black transition-all bg-[#f9f9f9]"/>
                                 <IconSearch className="absolute left-3.5 top-3.5 text-neutral-400 w-4 h-4" />
                             </div>
-
-                            {/* 下拉選單的品牌過濾器 */}
                             <div className="relative w-full md:w-64">
-                                <select
-                                    value={selectedBrand}
-                                    onChange={(e) => setSelectedBrand(e.target.value)}
-                                    className="w-full appearance-none bg-[#f9f9f9] border border-neutral-200 text-black py-3 pl-4 pr-10 rounded-lg focus:outline-none focus:border-black font-bold text-sm shadow-sm transition-colors cursor-pointer"
-                                >
+                                <select value={selectedBrand} onChange={(e) => setSelectedBrand(e.target.value)} className="w-full appearance-none bg-[#f9f9f9] border border-neutral-200 text-black py-3 pl-4 pr-10 rounded-lg focus:outline-none focus:border-black font-bold text-sm shadow-sm transition-colors cursor-pointer">
                                     {brands.map(brand => (
-                                        <option key={brand.name} value={brand.name}>
-                                            {brand.name === 'All' ? '所有品牌 All Brands' : `${brand.name} (${brand.count})`}
-                                        </option>
+                                        <option key={brand.name} value={brand.name}>{brand.name === 'All' ? '所有品牌 All Brands' : `${brand.name} (${brand.count})`}</option>
                                     ))}
                                 </select>
                                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-neutral-400">
-                                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                        <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
-                                    </svg>
+                                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
                                 </div>
                             </div>
-
                         </div>
                         
-                        {/* 產品列表 */}
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-4 gap-y-12 mt-4">
                             {currentItems.length > 0 ? currentItems.map((p, idx) => (
                                 <div key={idx} className="group flex flex-col h-full bg-white rounded-xl p-3 border border-transparent hover:border-neutral-200 transition-all shadow-sm hover:shadow-xl">
-                                    
-                                    {/* 列表圖片區域 */}
                                     <div className="aspect-[3/4] overflow-hidden bg-white rounded-lg mb-4 relative cursor-pointer" onClick={() => openProductDetail(p)}>
                                         <img src={p.image || 'https://via.placeholder.com/400?text=IMAGE'} alt={p.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 relative z-0" loading="lazy" />
-                                        
-                                        {/* 超淺色浮水印 */}
                                         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none overflow-hidden">
-                                            <span className="text-black opacity-[0.04] font-black italic text-2xl md:text-3xl transform -rotate-45 select-none tracking-widest whitespace-nowrap">
-                                                EXCLSV_SELECT
-                                            </span>
+                                            <span className="text-black opacity-[0.04] font-black italic text-2xl md:text-3xl transform -rotate-45 select-none tracking-widest whitespace-nowrap">EXCLSV_SELECT</span>
                                         </div>
                                     </div>
                                     
@@ -372,64 +489,36 @@
                                             <div className="flex flex-wrap gap-1 items-center">
                                                 {(p.sizes && p.sizes.length > 0) ? (
                                                     <>
-                                                        {p.sizes.slice(0, 3).map((s, i) => (
-                                                            <span key={i} className="text-[9px] border border-neutral-200 rounded bg-white text-neutral-600 px-1.5 py-0.5 font-bold">
-                                                                {formatSize(s)}
-                                                            </span>
-                                                        ))}
-                                                        {p.sizes.length > 3 && (
-                                                            <span className="text-[9px] text-neutral-400 ml-1 font-bold">+{p.sizes.length - 3}</span>
-                                                        )}
+                                                        {p.sizes.slice(0, 3).map((s, i) => <span key={i} className="text-[9px] border border-neutral-200 rounded bg-white text-neutral-600 px-1.5 py-0.5 font-bold">{formatSize(s)}</span>)}
+                                                        {p.sizes.length > 3 && <span className="text-[9px] text-neutral-400 ml-1 font-bold">+{p.sizes.length - 3}</span>}
                                                     </>
                                                 ) : <span className="text-[9px] text-neutral-400 italic">One Size</span>}
                                             </div>
-                                            <button onClick={() => openProductDetail(p)} className="text-[10px] text-[#0084FF] font-bold mt-1.5 hover:underline flex items-center gap-1">
-                                                查看詳情選擇尺碼 <IconChevronRight className="w-3 h-3" />
-                                            </button>
+                                            <button onClick={() => openProductDetail(p)} className="text-[10px] text-[#0084FF] font-bold mt-1.5 hover:underline flex items-center gap-1">查看詳情選擇尺碼 <IconChevronRight className="w-3 h-3" /></button>
                                         </div>
 
                                         <div className="pt-1 flex flex-col">
                                             <span className="text-xl font-black italic tracking-tight">HK$ {p.my_price}</span>
-                                            {/* 將 MSRP 改為 原價 */}
                                             {p.original_price > p.my_price && <span className="text-[10px] text-neutral-300 line-through">原價: HK$ {p.original_price}</span>}
                                         </div>
                                     </div>
                                     
-                                    <button onClick={() => openProductDetail(p)} className="w-full mt-4 py-3 bg-neutral-100 text-black rounded-lg text-[10px] font-black uppercase tracking-[0.2em] hover:bg-black hover:text-white transition-colors">
-                                        選取尺碼
-                                    </button>
+                                    <button onClick={() => openProductDetail(p)} className="w-full mt-4 py-3 bg-neutral-100 text-black rounded-lg text-[10px] font-black uppercase tracking-[0.2em] hover:bg-black hover:text-white transition-colors">選取尺碼</button>
                                 </div>
                             )) : (
-                                <div className="col-span-full py-20 text-center text-neutral-400 font-bold">
-                                    找不到符合條件的商品
-                                </div>
+                                <div className="col-span-full py-20 text-center text-neutral-400 font-bold">找不到符合條件的商品</div>
                             )}
                         </div>
 
                         {totalPages > 1 && (
                             <div className="mt-16 flex justify-center items-center gap-6">
-                                <button 
-                                    onClick={() => handlePageChange(currentPage - 1)} 
-                                    disabled={currentPage === 1}
-                                    className="px-6 py-2.5 border-2 border-black rounded-full text-sm font-bold transition-all disabled:opacity-30 disabled:border-neutral-300 hover:bg-black hover:text-white disabled:hover:bg-transparent disabled:hover:text-black"
-                                >
-                                    上一頁
-                                </button>
-                                <span className="text-sm font-black tracking-widest text-neutral-600">
-                                    PAGE {currentPage} / {totalPages}
-                                </span>
-                                <button 
-                                    onClick={() => handlePageChange(currentPage + 1)} 
-                                    disabled={currentPage === totalPages}
-                                    className="px-6 py-2.5 border-2 border-black rounded-full text-sm font-bold transition-all disabled:opacity-30 disabled:border-neutral-300 hover:bg-black hover:text-white disabled:hover:bg-transparent disabled:hover:text-black"
-                                >
-                                    下一頁
-                                </button>
+                                <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="px-6 py-2.5 border-2 border-black rounded-full text-sm font-bold transition-all disabled:opacity-30 disabled:border-neutral-300 hover:bg-black hover:text-white disabled:hover:bg-transparent disabled:hover:text-black">上一頁</button>
+                                <span className="text-sm font-black tracking-widest text-neutral-600">PAGE {currentPage} / {totalPages}</span>
+                                <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="px-6 py-2.5 border-2 border-black rounded-full text-sm font-bold transition-all disabled:opacity-30 disabled:border-neutral-300 hover:bg-black hover:text-white disabled:hover:bg-transparent disabled:hover:text-black">下一頁</button>
                             </div>
                         )}
                     </main>
 
-                    {/* 頁腳 */}
                     <footer className="bg-black text-white mt-20 py-16 px-4 text-center flex flex-col items-center">
                         <h3 className="text-2xl font-black italic tracking-tighter mb-4">EXCLSV_SELECT</h3>
                         <p className="text-sm font-bold text-neutral-300 tracking-widest mb-6 border-b border-neutral-700 pb-2">購買需約 9-18 個工作天，貨到便寄順豐到付。</p>
@@ -440,53 +529,30 @@
                     {activeModal === 'productDetail' && selectedProduct && (
                         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
                             <div className="bg-white rounded-2xl max-w-3xl w-full flex flex-col md:flex-row overflow-hidden shadow-2xl fade-in max-h-[95vh] md:max-h-[90vh]">
-                                
-                                {/* 詳情圖片區域 - 已修復手機版裁切問題 */}
                                 <div className="w-full md:w-1/2 bg-white relative overflow-hidden flex items-center justify-center min-h-[350px] md:min-h-[500px]">
-                                    <button onClick={() => setActiveModal(null)} className="absolute top-4 left-4 p-2 bg-white/80 rounded-full md:hidden z-20 shadow-sm border border-neutral-100">
-                                        <IconX className="w-5 h-5" />
-                                    </button>
-                                    
-                                    <img 
-                                        src={selectedProduct.image} 
-                                        alt={selectedProduct.name}
-                                        className="w-full h-full max-h-[45vh] md:max-h-[70vh] object-contain relative z-0 p-4 md:p-8" 
-                                    />
-                                    
-                                    {/* 詳情圖的超淺色浮水印 */}
+                                    <button onClick={() => setActiveModal(null)} className="absolute top-4 left-4 p-2 bg-white/80 rounded-full md:hidden z-20 shadow-sm border border-neutral-100"><IconX className="w-5 h-5" /></button>
+                                    <img src={selectedProduct.image} alt={selectedProduct.name} className="w-full h-full max-h-[45vh] md:max-h-[70vh] object-contain relative z-0 p-4 md:p-8" />
                                     <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none overflow-hidden">
-                                        <span className="text-black opacity-[0.04] font-black italic text-4xl transform -rotate-45 select-none tracking-widest whitespace-nowrap">
-                                            EXCLSV_SELECT
-                                        </span>
+                                        <span className="text-black opacity-[0.04] font-black italic text-4xl transform -rotate-45 select-none tracking-widest whitespace-nowrap">EXCLSV_SELECT</span>
                                     </div>
                                 </div>
                                 
-                                <div className="w-full md:w-1/2 p-6 md:p-10 flex flex-col overflow-y-auto relative">
+                                <div className="w-full md:w-1/2 p-6 md:p-10 flex flex-col overflow-y-auto relative hide-scrollbar">
                                     <div className="flex justify-between items-start mb-2">
                                         <p className="text-xs font-black text-neutral-400 uppercase tracking-widest">{selectedProduct.brand}</p>
-                                        <button onClick={() => setActiveModal(null)} className="hidden md:block text-neutral-400 hover:text-black">
-                                            <IconX className="w-6 h-6" />
-                                        </button>
+                                        <button onClick={() => setActiveModal(null)} className="hidden md:block text-neutral-400 hover:text-black"><IconX className="w-6 h-6" /></button>
                                     </div>
                                     <h2 className="text-2xl font-black leading-tight mb-4">{selectedProduct.name}</h2>
                                     <div className="mb-6">
                                         <span className="text-3xl font-black italic">HK$ {selectedProduct.my_price}</span>
-                                        {selectedProduct.original_price > selectedProduct.my_price && (
-                                            /* 在商品詳情也統一加上 原價: 標示 */
-                                            <span className="text-sm text-neutral-400 line-through ml-3">原價: HK$ {selectedProduct.original_price}</span>
-                                        )}
+                                        {selectedProduct.original_price > selectedProduct.my_price && <span className="text-sm text-neutral-400 line-through ml-3">原價: HK$ {selectedProduct.original_price}</span>}
                                     </div>
 
                                     <div className="mb-8">
                                         <div className="flex items-center justify-between mb-3">
                                             <span className="text-sm font-bold uppercase tracking-widest">Select Size</span>
-                                            
-                                            {/* 新增: 尺碼指南按鈕 */}
-                                            <button 
-                                                onClick={() => setShowSizeChart(true)} 
-                                                className="text-xs font-bold text-neutral-500 hover:text-black flex items-center gap-1 transition-colors underline underline-offset-2"
-                                            >
-                                                <IconRuler className="w-3.5 h-3.5" /> 尺碼指南
+                                            <button onClick={() => setShowSizeChart(true)} className="text-xs font-bold text-[#0084FF] hover:text-blue-700 flex items-center gap-1 transition-colors underline underline-offset-2">
+                                                <IconRuler className="w-3.5 h-3.5" /> {activeSizeGuide.title} 品牌尺碼指南
                                             </button>
                                         </div>
                                         <div className="grid grid-cols-3 gap-2">
@@ -495,15 +561,7 @@
                                                     const formattedSize = formatSize(s);
                                                     const isSelected = selectedSize === formattedSize;
                                                     return (
-                                                        <div 
-                                                            key={i} 
-                                                            onClick={() => setSelectedSize(formattedSize)}
-                                                            className={`border rounded-lg py-3 text-center text-sm font-bold cursor-pointer transition-all 
-                                                                ${isSelected 
-                                                                    ? 'bg-black text-white border-black shadow-md' 
-                                                                    : 'bg-white text-black border-neutral-200 hover:border-black hover:bg-neutral-50'
-                                                                }`}
-                                                        >
+                                                        <div key={i} onClick={() => setSelectedSize(formattedSize)} className={`border rounded-lg py-3 text-center text-sm font-bold cursor-pointer transition-all ${isSelected ? 'bg-black text-white border-black shadow-md' : 'bg-white text-black border-neutral-200 hover:border-black hover:bg-neutral-50'}`}>
                                                             {formattedSize}
                                                         </div>
                                                     )
@@ -521,11 +579,7 @@
                                             addToCart(selectedProduct, selectedSize || 'Standard Size');
                                         }} 
                                         disabled={selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize}
-                                        className={`mt-auto w-full py-4 font-black italic tracking-widest uppercase rounded-xl transition-all shadow-md
-                                            ${(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) 
-                                                ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed' 
-                                                : 'bg-black text-white hover:opacity-90 active:scale-[0.98]'
-                                            }`}
+                                        className={`mt-auto w-full py-4 font-black italic tracking-widest uppercase rounded-xl transition-all shadow-md ${(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed' : 'bg-black text-white hover:opacity-90 active:scale-[0.98]'}`}
                                     >
                                         {(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) ? '請先選擇尺碼' : '加入購物車'}
                                     </button>
@@ -534,88 +588,96 @@
                         </div>
                     )}
 
-                    {/* Modal 1.5: 尺碼指南 (Size Chart Overlay) */}
-                    {showSizeChart && (
+                    {/* Modal 1.5: 動態品牌尺碼指南 (Dynamic Size Chart Overlay) */}
+                    {showSizeChart && activeSizeGuide && (
                         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm transition-opacity">
-                            <div className="bg-white rounded-2xl w-full max-w-lg p-6 md:p-8 shadow-2xl fade-in relative max-h-[90vh] overflow-y-auto">
-                                <button onClick={() => setShowSizeChart(false)} className="absolute top-4 right-4 text-neutral-400 hover:text-black bg-neutral-100 rounded-full p-1">
+                            <div className="bg-white rounded-2xl w-full max-w-lg p-6 md:p-8 shadow-2xl fade-in relative max-h-[90vh] overflow-y-auto hide-scrollbar">
+                                <button onClick={() => setShowSizeChart(false)} className="absolute top-4 right-4 text-neutral-400 hover:text-black bg-neutral-100 rounded-full p-1 transition-colors">
                                     <IconX className="w-5 h-5" />
                                 </button>
                                 
-                                <div className="text-center mb-6">
-                                    <h3 className="text-xl font-black italic tracking-widest uppercase mb-1">Size Guide</h3>
-                                    <p className="text-sm font-bold text-neutral-400">國際尺碼對照表</p>
+                                <div className="text-center mb-6 pr-6">
+                                    <h3 className="text-xl font-black italic tracking-widest uppercase mb-1">{activeSizeGuide.title} Size Guide</h3>
+                                    <p className="text-sm font-bold text-neutral-400">品牌專屬尺碼對照表</p>
                                 </div>
                                 
-                                <div className="space-y-8">
+                                <div className="space-y-6">
                                     {/* 鞋類尺碼 */}
-                                    <div>
-                                        <h4 className="font-bold text-sm mb-3 bg-neutral-100 p-2 rounded-lg text-center flex justify-center items-center gap-2">
-                                            👟 Sneakers / Footwear (鞋類)
-                                        </h4>
-                                        <div className="overflow-x-auto rounded-xl border border-neutral-200">
-                                            <table className="w-full text-xs text-center border-collapse">
-                                                <thead className="bg-neutral-50">
-                                                    <tr className="border-b border-neutral-200">
-                                                        <th className="py-3 font-bold text-neutral-600">US (Men)</th>
-                                                        <th className="py-3 font-bold text-neutral-600">US (Women)</th>
-                                                        <th className="py-3 font-bold text-neutral-600">UK</th>
-                                                        <th className="py-3 font-bold text-neutral-600">EU</th>
-                                                        <th className="py-3 font-bold text-neutral-600">CM</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-neutral-100">
-                                                    <tr className="hover:bg-neutral-50"><td className="py-2.5">7</td><td className="py-2.5">8.5</td><td className="py-2.5">6</td><td className="py-2.5">40</td><td className="py-2.5">25</td></tr>
-                                                    <tr className="hover:bg-neutral-50"><td className="py-2.5">7.5</td><td className="py-2.5">9</td><td className="py-2.5">6.5</td><td className="py-2.5">40.5</td><td className="py-2.5">25.5</td></tr>
-                                                    <tr className="hover:bg-neutral-50"><td className="py-2.5">8</td><td className="py-2.5">9.5</td><td className="py-2.5">7</td><td className="py-2.5">41</td><td className="py-2.5">26</td></tr>
-                                                    <tr className="hover:bg-neutral-50"><td className="py-2.5">8.5</td><td className="py-2.5">10</td><td className="py-2.5">7.5</td><td className="py-2.5">42</td><td className="py-2.5">26.5</td></tr>
-                                                    <tr className="hover:bg-neutral-50"><td className="py-2.5">9</td><td className="py-2.5">10.5</td><td className="py-2.5">8</td><td className="py-2.5">42.5</td><td className="py-2.5">27</td></tr>
-                                                    <tr className="hover:bg-neutral-50"><td className="py-2.5">9.5</td><td className="py-2.5">11</td><td className="py-2.5">8.5</td><td className="py-2.5">43</td><td className="py-2.5">27.5</td></tr>
-                                                    <tr className="hover:bg-neutral-50"><td className="py-2.5">10</td><td className="py-2.5">11.5</td><td className="py-2.5">9</td><td className="py-2.5">44</td><td className="py-2.5">28</td></tr>
-                                                    <tr className="hover:bg-neutral-50"><td className="py-2.5">10.5</td><td className="py-2.5">12</td><td className="py-2.5">9.5</td><td className="py-2.5">44.5</td><td className="py-2.5">28.5</td></tr>
-                                                    <tr className="hover:bg-neutral-50"><td className="py-2.5">11</td><td className="py-2.5">12.5</td><td className="py-2.5">10</td><td className="py-2.5">45</td><td className="py-2.5">29</td></tr>
-                                                </tbody>
-                                            </table>
+                                    {activeSizeGuide.shoes && (
+                                        <div>
+                                            <h4 className="font-bold text-sm mb-3 bg-neutral-100 p-2 rounded-lg text-center flex justify-center items-center gap-2">
+                                                👟 Sneakers (鞋類)
+                                            </h4>
+                                            <div className="overflow-x-auto rounded-xl border border-neutral-200">
+                                                <table className="w-full text-xs text-center border-collapse">
+                                                    <thead className="bg-neutral-50">
+                                                        <tr className="border-b border-neutral-200">
+                                                            <th className="py-3 font-bold text-neutral-600">US</th>
+                                                            <th className="py-3 font-bold text-neutral-600">UK</th>
+                                                            <th className="py-3 font-bold text-neutral-600">EU</th>
+                                                            <th className="py-3 font-bold text-neutral-600">CM</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-neutral-100">
+                                                        {activeSizeGuide.shoes.map((row, i) => (
+                                                            <tr key={i} className="hover:bg-neutral-50 transition-colors">
+                                                                <td className="py-2.5 font-black">{row.us}</td>
+                                                                <td className="py-2.5">{row.uk}</td>
+                                                                <td className="py-2.5">{row.eu}</td>
+                                                                <td className="py-2.5">{row.cm}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
 
                                     {/* 服飾尺碼 */}
-                                    <div>
-                                        <h4 className="font-bold text-sm mb-3 bg-neutral-100 p-2 rounded-lg text-center flex justify-center items-center gap-2">
-                                            👕 Apparel (服飾)
-                                        </h4>
-                                        <div className="overflow-x-auto rounded-xl border border-neutral-200">
-                                            <table className="w-full text-xs text-center border-collapse">
-                                                <thead className="bg-neutral-50">
-                                                    <tr className="border-b border-neutral-200">
-                                                        <th className="py-3 font-bold text-neutral-600">Size</th>
-                                                        <th className="py-3 font-bold text-neutral-600">Chest (胸圍 cm)</th>
-                                                        <th className="py-3 font-bold text-neutral-600">Waist (腰圍 cm)</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-neutral-100">
-                                                    <tr className="hover:bg-neutral-50"><td className="py-2.5 font-black">XS</td><td className="py-2.5">80-88</td><td className="py-2.5">65-73</td></tr>
-                                                    <tr className="hover:bg-neutral-50"><td className="py-2.5 font-black">S</td><td className="py-2.5">88-96</td><td className="py-2.5">73-81</td></tr>
-                                                    <tr className="hover:bg-neutral-50"><td className="py-2.5 font-black">M</td><td className="py-2.5">96-104</td><td className="py-2.5">81-89</td></tr>
-                                                    <tr className="hover:bg-neutral-50"><td className="py-2.5 font-black">L</td><td className="py-2.5">104-112</td><td className="py-2.5">89-97</td></tr>
-                                                    <tr className="hover:bg-neutral-50"><td className="py-2.5 font-black">XL</td><td className="py-2.5">112-124</td><td className="py-2.5">97-109</td></tr>
-                                                    <tr className="hover:bg-neutral-50"><td className="py-2.5 font-black">XXL</td><td className="py-2.5">124-136</td><td className="py-2.5">109-121</td></tr>
-                                                </tbody>
-                                            </table>
+                                    {activeSizeGuide.apparel && (
+                                        <div>
+                                            <h4 className="font-bold text-sm mb-3 bg-neutral-100 p-2 rounded-lg text-center flex justify-center items-center gap-2">
+                                                👕 Apparel (服飾)
+                                            </h4>
+                                            <div className="overflow-x-auto rounded-xl border border-neutral-200">
+                                                <table className="w-full text-xs text-center border-collapse">
+                                                    <thead className="bg-neutral-50">
+                                                        <tr className="border-b border-neutral-200">
+                                                            {/* 動態產生表頭，依照資料的 key */}
+                                                            {Object.keys(activeSizeGuide.apparel[0]).map(k => {
+                                                                let label = k;
+                                                                if (k === 'size') label = 'Size';
+                                                                if (k === 'chest') label = 'Chest (胸圍 cm)';
+                                                                if (k === 'waist') label = 'Waist (腰圍 cm)';
+                                                                if (k === 'length') label = 'Length (衣長 cm)';
+                                                                return <th key={k} className="py-3 font-bold text-neutral-600 whitespace-nowrap px-2">{label}</th>;
+                                                            })}
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-neutral-100">
+                                                        {activeSizeGuide.apparel.map((row, i) => (
+                                                            <tr key={i} className="hover:bg-neutral-50 transition-colors">
+                                                                {Object.keys(row).map(k => (
+                                                                    <td key={k} className={`py-2.5 px-2 whitespace-nowrap ${k==='size' ? 'font-black' : ''}`}>{row[k]}</td>
+                                                                ))}
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
                                     
-                                    <div className="bg-neutral-50 p-3 rounded-lg border border-neutral-100">
-                                        <p className="text-[10px] text-neutral-500 font-bold leading-relaxed">
-                                            * 此尺碼表僅供一般參考（Standard Reference）。不同品牌及款式的剪裁可能有所不同，部分鞋款可能偏大或偏小。如有特定商品的尺碼疑問，建議您聯絡客服為您確認。
+                                    {/* 品牌專屬備註 */}
+                                    <div className="bg-[#f9f9f9] p-3.5 rounded-xl border border-neutral-200">
+                                        <p className="text-[11px] text-neutral-600 font-bold leading-relaxed flex items-start gap-2">
+                                            <span className="text-xl">💡</span> 
+                                            <span className="mt-0.5">{activeSizeGuide.note}</span>
                                         </p>
                                     </div>
                                     
-                                    <button 
-                                        onClick={() => setShowSizeChart(false)} 
-                                        className="w-full py-3 bg-black text-white font-bold rounded-xl text-sm hover:opacity-90 transition-opacity"
-                                    >
-                                        關閉尺碼表
+                                    <button onClick={() => setShowSizeChart(false)} className="w-full py-3.5 bg-black text-white font-bold rounded-xl text-sm hover:opacity-90 transition-opacity shadow-md active:scale-[0.98]">
+                                        我明白了，返回選擇尺碼
                                     </button>
                                 </div>
                             </div>
@@ -665,56 +727,29 @@
                     {activeModal === 'checkoutInfo' && (
                         <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md overflow-y-auto">
                             <div className="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl fade-in relative my-auto">
-                                <button onClick={() => setActiveModal(cart.length > 0 ? 'cart' : null)} className="absolute top-4 right-4 text-neutral-400 hover:text-black">
-                                    <IconX className="w-5 h-5" />
-                                </button>
+                                <button onClick={() => setActiveModal(cart.length > 0 ? 'cart' : null)} className="absolute top-4 right-4 text-neutral-400 hover:text-black"><IconX className="w-5 h-5" /></button>
                                 <h2 className="text-2xl font-black italic mb-2 text-center">填寫收貨資料</h2>
                                 <p className="text-center text-xs text-neutral-500 font-bold mb-6">我們需要您的聯絡方式以便安排發貨</p>
                                 
                                 <div className="space-y-4 mb-6">
                                     <div>
                                         <label className="block text-xs font-bold text-neutral-600 mb-1">姓名 <span className="text-red-500">*</span></label>
-                                        <input 
-                                            type="text" 
-                                            value={orderData.name}
-                                            onChange={(e) => { setOrderData({...orderData, name: e.target.value}); setCheckoutErrors({...checkoutErrors, name: null}); }}
-                                            placeholder="您的姓名" 
-                                            className={`w-full bg-white border ${checkoutErrors.name ? 'border-red-500' : 'border-neutral-200'} rounded-lg p-3 text-sm focus:ring-1 focus:ring-black outline-none`} 
-                                        />
+                                        <input type="text" value={orderData.name} onChange={(e) => { setOrderData({...orderData, name: e.target.value}); setCheckoutErrors({...checkoutErrors, name: null}); }} placeholder="您的姓名" className={`w-full bg-white border ${checkoutErrors.name ? 'border-red-500' : 'border-neutral-200'} rounded-lg p-3 text-sm focus:ring-1 focus:ring-black outline-none`} />
                                         {checkoutErrors.name && <p className="text-red-500 text-xs mt-1">{checkoutErrors.name}</p>}
                                     </div>
-                                    
                                     <div>
                                         <label className="block text-xs font-bold text-neutral-600 mb-1">聯絡電話 <span className="text-red-500">*</span></label>
-                                        <input 
-                                            type="tel" 
-                                            value={orderData.phone}
-                                            onChange={(e) => { setOrderData({...orderData, phone: e.target.value}); setCheckoutErrors({...checkoutErrors, phone: null}); }}
-                                            placeholder="手提電話號碼" 
-                                            className={`w-full bg-white border ${checkoutErrors.phone ? 'border-red-500' : 'border-neutral-200'} rounded-lg p-3 text-sm focus:ring-1 focus:ring-black outline-none`} 
-                                        />
+                                        <input type="tel" value={orderData.phone} onChange={(e) => { setOrderData({...orderData, phone: e.target.value}); setCheckoutErrors({...checkoutErrors, phone: null}); }} placeholder="手提電話號碼" className={`w-full bg-white border ${checkoutErrors.phone ? 'border-red-500' : 'border-neutral-200'} rounded-lg p-3 text-sm focus:ring-1 focus:ring-black outline-none`} />
                                         {checkoutErrors.phone && <p className="text-red-500 text-xs mt-1">{checkoutErrors.phone}</p>}
                                     </div>
-
                                     <div>
                                         <label className="block text-xs font-bold text-neutral-600 mb-1">收貨地址 / 順豐資料 <span className="text-red-500">*</span></label>
-                                        <textarea 
-                                            rows="3"
-                                            value={orderData.address}
-                                            onChange={(e) => { setOrderData({...orderData, address: e.target.value}); setCheckoutErrors({...checkoutErrors, address: null}); }}
-                                            placeholder="請輸入詳細地址、順豐站點代碼或順豐智能櫃號碼" 
-                                            className={`w-full bg-white border ${checkoutErrors.address ? 'border-red-500' : 'border-neutral-200'} rounded-lg p-3 text-sm focus:ring-1 focus:ring-black outline-none resize-none`} 
-                                        ></textarea>
+                                        <textarea rows="3" value={orderData.address} onChange={(e) => { setOrderData({...orderData, address: e.target.value}); setCheckoutErrors({...checkoutErrors, address: null}); }} placeholder="請輸入詳細地址、順豐站點代碼或順豐智能櫃號碼" className={`w-full bg-white border ${checkoutErrors.address ? 'border-red-500' : 'border-neutral-200'} rounded-lg p-3 text-sm focus:ring-1 focus:ring-black outline-none resize-none`} ></textarea>
                                         {checkoutErrors.address && <p className="text-red-500 text-xs mt-1">{checkoutErrors.address}</p>}
                                     </div>
                                 </div>
 
-                                <button 
-                                    onClick={validateAndProceed}
-                                    className="w-full bg-black text-white font-bold py-3.5 rounded-xl text-sm hover:opacity-90 shadow-md transition-opacity"
-                                >
-                                    繼續付款
-                                </button>
+                                <button onClick={validateAndProceed} className="w-full bg-black text-white font-bold py-3.5 rounded-xl text-sm hover:opacity-90 shadow-md transition-opacity">繼續付款</button>
                             </div>
                         </div>
                     )}
@@ -723,12 +758,8 @@
                     {activeModal === 'checkoutPayment' && (
                         <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md overflow-y-auto">
                             <div className="bg-white rounded-2xl w-full max-w-md p-6 md:p-8 shadow-2xl fade-in relative my-auto">
-                                <button onClick={() => setActiveModal('checkoutInfo')} className="absolute top-4 left-4 text-neutral-400 hover:text-black bg-white/80 p-1 rounded-full z-10" disabled={isSubmitting}>
-                                    <IconArrowLeft className="w-5 h-5" />
-                                </button>
-                                <button onClick={() => setActiveModal(null)} className="absolute top-4 right-4 text-neutral-400 hover:text-black bg-white/80 p-1 rounded-full z-10" disabled={isSubmitting}>
-                                    <IconX className="w-5 h-5" />
-                                </button>
+                                <button onClick={() => setActiveModal('checkoutInfo')} className="absolute top-4 left-4 text-neutral-400 hover:text-black bg-white/80 p-1 rounded-full z-10" disabled={isSubmitting}><IconArrowLeft className="w-5 h-5" /></button>
+                                <button onClick={() => setActiveModal(null)} className="absolute top-4 right-4 text-neutral-400 hover:text-black bg-white/80 p-1 rounded-full z-10" disabled={isSubmitting}><IconX className="w-5 h-5" /></button>
                                 
                                 <h2 className="text-2xl font-black italic mb-2 text-center mt-2">PAYMENT</h2>
                                 <p className="text-center text-xs text-neutral-500 font-bold mb-6">點選下方支付方式以顯示收款資訊</p>
@@ -737,18 +768,10 @@
                                     {['轉數快 (FPS)', 'PayMe', '支付寶 (AlipayHK)', 'WeChat Pay'].map((method) => (
                                         <div key={method} className="relative block">
                                             <label className="cursor-pointer block">
-                                                <input 
-                                                    type="radio" name="payment" value={method} 
-                                                    className="payment-radio absolute opacity-0"
-                                                    checked={orderData.paymentMethod === method}
-                                                    onChange={(e) => setOrderData({...orderData, paymentMethod: e.target.value})}
-                                                    disabled={isSubmitting}
-                                                />
+                                                <input type="radio" name="payment" value={method} className="payment-radio absolute opacity-0" checked={orderData.paymentMethod === method} onChange={(e) => setOrderData({...orderData, paymentMethod: e.target.value})} disabled={isSubmitting}/>
                                                 <div className="border-2 border-neutral-100 rounded-xl p-4 flex items-center justify-between transition-all hover:border-neutral-300">
                                                     <span className="font-bold text-sm">{method}</span>
-                                                    <div className="w-5 h-5 rounded-full border-2 border-neutral-300 flex items-center justify-center bg-white">
-                                                        <div className="radio-dot w-2.5 h-2.5 rounded-full bg-transparent transition-colors"></div>
-                                                    </div>
+                                                    <div className="w-5 h-5 rounded-full border-2 border-neutral-300 flex items-center justify-center bg-white"><div className="radio-dot w-2.5 h-2.5 rounded-full bg-transparent transition-colors"></div></div>
                                                 </div>
                                             </label>
                                             {renderPaymentDetails(method)}
@@ -761,17 +784,8 @@
                                         <span className="font-bold text-neutral-400">結帳總額</span>
                                         <span className="text-xl font-black italic">HK$ {cartTotal}</span>
                                     </div>
-                                    <button 
-                                        onClick={generateFinalOrder}
-                                        disabled={isSubmitting}
-                                        className={`w-full text-white font-black italic py-4 rounded-xl shadow-lg flex justify-center items-center gap-2 transition-transform 
-                                            ${isSubmitting ? 'bg-neutral-400 cursor-not-allowed' : 'bg-black hover:scale-[1.02] active:scale-95'}`}
-                                    >
-                                        {isSubmitting ? (
-                                            <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> 處理中...</>
-                                        ) : (
-                                            <>已付款，確認並發送訂單 <IconCheck className="w-5 h-5" /></>
-                                        )}
+                                    <button onClick={generateFinalOrder} disabled={isSubmitting} className={`w-full text-white font-black italic py-4 rounded-xl shadow-lg flex justify-center items-center gap-2 transition-transform ${isSubmitting ? 'bg-neutral-400 cursor-not-allowed' : 'bg-black hover:scale-[1.02] active:scale-95'}`}>
+                                        {isSubmitting ? <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> 處理中...</> : <>已付款，確認並發送訂單 <IconCheck className="w-5 h-5" /></>}
                                     </button>
                                 </div>
                             </div>
@@ -783,9 +797,7 @@
                         <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md">
                             <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl fade-in relative">
                                 <h2 className="text-2xl font-black italic tracking-tighter mb-2 uppercase">最後一步</h2>
-                                <p className="text-neutral-500 text-xs font-bold leading-relaxed mb-8 px-2">
-                                    您已選擇 <strong>{orderData.paymentMethod}</strong>。<br/>請點擊下方按鈕將您的購物明細發送給客服進行最終確認。
-                                </p>
+                                <p className="text-neutral-500 text-xs font-bold leading-relaxed mb-8 px-2">您已選擇 <strong>{orderData.paymentMethod}</strong>。<br/>請點擊下方按鈕將您的購物明細發送給客服進行最終確認。</p>
                                 
                                 <div className="space-y-4 mb-8">
                                     <a href={orderLinks.whatsappUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full py-4 bg-[#25D366] text-white font-black rounded-xl hover:opacity-90 transition-opacity shadow-md">
@@ -793,9 +805,7 @@
                                     </a>
                                 </div>
 
-                                <button onClick={() => { setActiveModal(null); setCart([]); }} className="text-sm font-bold text-neutral-400 hover:text-black underline">
-                                    返回首頁繼續選購
-                                </button>
+                                <button onClick={() => { setActiveModal(null); setCart([]); }} className="text-sm font-bold text-neutral-400 hover:text-black underline">返回首頁繼續選購</button>
                             </div>
                         </div>
                     )}

@@ -4,12 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EXCLSV_ASICSJPN - 歐洲精選服飾鞋款</title>
-    <!-- 引入 React 和 ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- 引入 Babel 以編譯 JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <style>
@@ -230,7 +227,10 @@
             const [activeModal, setActiveModal] = useState(null); 
             const [selectedProduct, setSelectedProduct] = useState(null);
             const [selectedSize, setSelectedSize] = useState(null); 
-            const [showSizeChart, setShowSizeChart] = useState(false); // 保留尺碼表的狀態控制
+            const [showSizeChart, setShowSizeChart] = useState(false); 
+            
+            // --- 限時 99 折狀態 ---
+            const [isDiscountActive, setIsDiscountActive] = useState(false);
 
             const [orderData, setOrderData] = useState({
                 name: '',
@@ -243,6 +243,12 @@
             const [isSubmitting, setIsSubmitting] = useState(false);
 
             useEffect(() => {
+                // 自動判斷是否為 2026/04/06 23:59 (UTC+8) 之前
+                const targetDate = new Date('2026-04-06T23:59:59+08:00').getTime();
+                if (Date.now() <= targetDate) {
+                    setIsDiscountActive(true);
+                }
+
                 const fetchData = async () => {
                     try {
                         const response = await fetch('./products.json');
@@ -309,7 +315,10 @@
             };
 
             const removeFromCart = (cartItemId) => setCart(prev => prev.filter(item => item.cartItemId !== cartItemId));
+            
+            // --- 購物車金額計算 (自動套用 99 折) ---
             const cartTotal = cart.reduce((sum, item) => sum + (item.my_price * item.quantity), 0);
+            const finalTotal = isDiscountActive && cartTotal > 0 ? Math.round(cartTotal * 0.99) : cartTotal;
 
             const openProductDetail = (product) => {
                 setSelectedProduct(product);
@@ -323,7 +332,6 @@
                 if (!selectedProduct || !selectedProduct.brand) return SIZE_GUIDES['DEFAULT'];
                 const pBrand = selectedProduct.brand.toUpperCase();
                 
-                // 檢查是否有包含在我們的品牌資料庫中
                 const matchKey = Object.keys(SIZE_GUIDES).find(k => pBrand.includes(k) && k !== 'DEFAULT');
                 return matchKey ? SIZE_GUIDES[matchKey] : SIZE_GUIDES['DEFAULT'];
             }, [selectedProduct]);
@@ -359,7 +367,12 @@
                     orderText += itemLine;
                     itemsTextForSheet += itemLine;
                 });
-                orderText += `------------------\n💰 *總金額: HK$ ${cartTotal}*`;
+                
+                orderText += `------------------\n💰 *總金額: HK$ ${finalTotal}*`;
+                // 若有啟用折扣，在 WhatsApp 訊息中特別註明
+                if (isDiscountActive && cartTotal > 0) {
+                    orderText += `\n🎁 (已享限時99折優惠，原總額: HK$ ${cartTotal})`;
+                }
 
                 const orderId = "ORD-" + Date.now().toString().slice(-6);
                 const formDataObj = new URLSearchParams();
@@ -368,7 +381,7 @@
                 formDataObj.append('phone', orderData.phone);
                 formDataObj.append('address', orderData.address);
                 formDataObj.append('itemsText', itemsTextForSheet); 
-                formDataObj.append('total', cartTotal);
+                formDataObj.append('total', finalTotal); // 傳送最終折後金額至 Sheet
                 formDataObj.append('paymentMethod', orderData.paymentMethod);
 
                 const webhookUrl = "https://script.google.com/macros/s/AKfycbzNh86G8XK1UmlTBCflB0oFhVuXbiFzdi7SRAPtF31WBPAmZ6u89QDZrdVmX4YFwWzj3Q/exec";
@@ -440,6 +453,13 @@
                             &nbsp; GLOBAL SHIPPING • 100% AUTHENTIC GUARANTEED • DIRECT FROM EUROPEAN BOUTIQUES • NEW ITEMS ADDED DAILY • GLOBAL SHIPPING • &nbsp;
                         </div>
                     </div>
+
+                    {/* ✨ 限時折扣頂部橫幅 */}
+                    {isDiscountActive && (
+                        <div className="bg-red-600 text-white text-center py-2 text-xs font-bold tracking-widest uppercase">
+                            ✨ 限時優惠：全館購物結帳自動享 99 折 (至 2026/04/06) ✨
+                        </div>
+                    )}
 
                     <nav className="bg-white/80 backdrop-blur-md border-b sticky top-0 z-50 px-4 py-3 shadow-sm">
                         <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -551,7 +571,6 @@
                                     <div className="mb-8">
                                         <div className="flex items-center justify-between mb-3">
                                             <span className="text-sm font-bold uppercase tracking-widest">Select Size</span>
-                                            {/* 已移除：尺碼指南按鈕 */}
                                         </div>
                                         <div className="grid grid-cols-3 gap-2">
                                             {selectedProduct.sizes && selectedProduct.sizes.length > 0 ? (
@@ -586,7 +605,7 @@
                         </div>
                     )}
 
-                    {/* Modal 1.5: 動態品牌尺碼指南 (保留但目前透過按鈕移除而被隱藏) */}
+                    {/* Modal 1.5: 動態品牌尺碼指南 (功能與資料庫保留，目前被隱藏，隨時可重新啟用) */}
                     {showSizeChart && activeSizeGuide && (
                         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm transition-opacity">
                             <div className="bg-white rounded-2xl w-full max-w-lg p-6 md:p-8 shadow-2xl fade-in relative max-h-[90vh] overflow-y-auto hide-scrollbar">
@@ -710,9 +729,14 @@
                                 </div>
                                 {cart.length > 0 && (
                                     <div className="pt-4 border-t mt-4">
-                                        <div className="flex justify-between mb-4">
+                                        <div className="flex justify-between mb-4 items-end">
                                             <span className="font-bold text-neutral-400">Total</span>
-                                            <span className="text-2xl font-black italic">HK$ {cartTotal}</span>
+                                            <div className="text-right">
+                                                {/* ✨ 折扣提示 */}
+                                                {isDiscountActive && cartTotal > 0 && <p className="text-[10px] text-red-500 font-bold mb-1">✨ 限時 99 折優惠</p>}
+                                                {isDiscountActive && cartTotal > 0 && <span className="text-sm text-neutral-400 line-through mr-2">HK$ {cartTotal}</span>}
+                                                <span className="text-2xl font-black italic">HK$ {finalTotal}</span>
+                                            </div>
                                         </div>
                                         <button onClick={() => setActiveModal('checkoutInfo')} className="w-full bg-black text-white py-4 rounded-xl font-black italic shadow-md hover:bg-neutral-800 transition-colors">去結帳</button>
                                     </div>
@@ -778,9 +802,13 @@
                                 </div>
 
                                 <div className="border-t border-neutral-100 pt-6">
-                                    <div className="flex justify-between mb-6">
+                                    <div className="flex justify-between mb-6 items-end">
                                         <span className="font-bold text-neutral-400">結帳總額</span>
-                                        <span className="text-xl font-black italic">HK$ {cartTotal}</span>
+                                        <div className="text-right">
+                                            {/* ✨ 折扣提示 */}
+                                            {isDiscountActive && cartTotal > 0 && <span className="text-sm text-neutral-400 line-through mr-2">HK$ {cartTotal}</span>}
+                                            <span className="text-xl font-black italic">HK$ {finalTotal}</span>
+                                        </div>
                                     </div>
                                     <button onClick={generateFinalOrder} disabled={isSubmitting} className={`w-full text-white font-black italic py-4 rounded-xl shadow-lg flex justify-center items-center gap-2 transition-transform ${isSubmitting ? 'bg-neutral-400 cursor-not-allowed' : 'bg-black hover:scale-[1.02] active:scale-95'}`}>
                                         {isSubmitting ? <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> 處理中...</> : <>已付款，確認並發送訂單 <IconCheck className="w-5 h-5" /></>}
